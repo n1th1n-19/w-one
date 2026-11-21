@@ -193,6 +193,7 @@ fun HomeScreen(nav: (Screen) -> Unit) {
                 is HidState.Connected -> WButton("Disconnect", { app.engine.disconnect() }, Modifier.fillMaxWidth())
                 HidState.Ready -> WButton("Pair a new computer", { nav(Screen.Pairing) }, Modifier.fillMaxWidth(), icon = Icons.plus)
                 HidState.Idle -> WButton("Start", { HidService.start(ctx) }, Modifier.fillMaxWidth(), primary = true)
+                HidState.Unsupported -> WButton("Try again", { app.engine.stop(); HidService.start(ctx) }, Modifier.fillMaxWidth())
                 else -> Unit
             }
         }

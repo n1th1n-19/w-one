@@ -65,7 +65,8 @@ class HidEngine(private val context: Context) {
 
     /** Gets the HID profile proxy and registers the combined descriptor. Safe to call again. */
     fun start() {
-        if (hid != null && registered) return
+        if (hid != null) return
+        watchBluetooth()
         if (!hasPermission()) { _state.value = HidState.NeedsPermission; return }
         val a = adapter
         if (a == null) { _state.value = HidState.Unsupported; return }
@@ -77,7 +78,28 @@ class HidEngine(private val context: Context) {
         main.postDelayed({ if (_state.value == HidState.Registering) _state.value = HidState.Unsupported }, 6000)
     }
 
+    private var watching = false
+    private val btReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: Context, i: android.content.Intent) {
+            when (i.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
+                BluetoothAdapter.STATE_OFF -> {
+                    hid = null; host = null; registered = false; _leds.value = 0
+                    if (_state.value != HidState.Idle) _state.value = HidState.BluetoothOff
+                }
+                BluetoothAdapter.STATE_ON -> if (_state.value == HidState.BluetoothOff) start()
+            }
+        }
+    }
+
+    /** Follows Bluetooth being switched off and on so the registration comes back by itself. */
+    private fun watchBluetooth() {
+        if (watching) return
+        watching = true
+        androidx.core.content.ContextCompat.registerReceiver(context, btReceiver, android.content.IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
     fun stop() {
+        if (watching) { watching = false; runCatching { context.unregisterReceiver(btReceiver) } }
         val h = hid
         if (h != null) {
             try { if (registered) h.unregisterApp() } catch (_: SecurityException) {}
