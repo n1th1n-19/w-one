@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
@@ -293,7 +294,7 @@ private fun TypedText(shown: String, style: androidx.compose.ui.text.TextStyle) 
     val a = blinkAlpha()
     val text = androidx.compose.ui.text.buildAnnotatedString {
         append(shown)
-        androidx.compose.ui.text.withStyle(androidx.compose.ui.text.SpanStyle(color = style.color.copy(alpha = a))) { append("\u258E") }
+        withStyle(androidx.compose.ui.text.SpanStyle(color = style.color.copy(alpha = a))) { append("\u258E") }
     }
     androidx.compose.foundation.text.BasicText(text, style = style)
 }
