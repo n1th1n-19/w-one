@@ -62,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -282,6 +283,7 @@ fun PairingScreen(nav: (Screen) -> Unit) {
             Card(colors = CardDefaults.cardColors(containerColor = cs.surfaceContainerHigh), modifier = Modifier.fillMaxWidth()) {
                 Tx("bluetoothctl\npair <phone address>\ntrust <phone address>\nconnect <phone address>", Type.code, modifier = Modifier.padding(16.dp))
             }
+            Text("If the computer starts playing your phone's music: it also took the phone as an audio device. On the phone open Settings, Connected devices, the computer, and turn off Media audio and Phone calls. Keyboard, mouse and gamepad keep working.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
             Text("A computer remembers what a device can do when it pairs. After updating w-one, remove the phone on the computer and pair again. Typing assumes a US keyboard layout on the computer.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
             Spacer(Modifier.height(16.dp))
         }
@@ -444,6 +446,28 @@ fun IntroScreen(onDone: () -> Unit) {
             Button({ if (pager.currentPage == 2) onDone() else scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } }) {
                 Text(if (pager.currentPage == 2) "Get started" else "Next")
             }
+        }
+    }
+}
+
+/** Cold-start screen: a new mascot each launch, drawn from noise with a random seed and frequency. */
+@Composable
+fun SplashScreen(onDone: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val look = remember { MascotLook.random() }
+    val scale = remember { androidx.compose.animation.core.Animatable(0.8f) }
+    LaunchedEffect(Unit) {
+        launch { scale.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = 260f)) }
+        delay(1300)
+        onDone()
+    }
+    Box(Modifier.fillMaxSize().background(cs.background), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            MascotView(
+                look, 168.dp, body = androidx.compose.ui.graphics.Color(0xFFE6C9A8), face = androidx.compose.ui.graphics.Color(0xFF2A1A0A),
+                modifier = Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value },
+            )
+            Text("w-one", style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Mono, fontWeight = FontWeight.Medium), color = cs.onBackground)
         }
     }
 }

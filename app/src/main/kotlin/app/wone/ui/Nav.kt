@@ -3,7 +3,7 @@ package app.wone.ui
 import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class Screen(val landscape: Boolean) {
-    Intro(false), Home(false), Settings(false), Pairing(false),
+    Splash(false), Intro(false), Home(false), Settings(false), Pairing(false),
     Keyboard(true), Trackpad(true), Air(true), Gamepad(true), GamepadEdit(true),
 }
 
