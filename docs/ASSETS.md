@@ -2,25 +2,27 @@
 
 Every bundled asset must have a free licence compatible with GPL-3.0-or-later and F-Droid. Never bundle CC-BY-NC or audio of unknown origin. Check the licence on the source page before adding a file, and record it here.
 
-## Keyboard sounds (candidates, not yet bundled)
+## Keyboard sounds (bundled)
 
-| Switch feel | Source | Licence | Status |
+Cut from CC0 recordings by the Mechanify project (MIT code, https://github.com/abraraltaf92/mechanify), converted with `tools/build_keyboard_sounds.sh`. Licence verified on each Freesound source page.
+
+| Switch feel | Samples | Source recording | Licence |
 |---|---|---|---|
-| Thocky (linear, Cherry Red) | handygaber, "Keyboard clicking typing Cherry Red Mechanical", https://freesound.org/s/499773/ (WAV, 96 kHz, 24-bit, 1:51) | CC0 | Licence verified on source page |
-| Tactile (Cherry Brown) | majod, "Mechanical Keyboard Cherry MX Brown", https://freesound.org/s/400167/ (FLAC, 48 kHz, 1:04) | CC0 | Licence verified on source page |
-| Clicky (Cherry Blue) | Candidates: SamsterBirdies (typing on Cherry MX Blue), UberBosser (https://freesound.org/s/421581/, /421583, /421584) | Reported CC0 | Licence NOT yet verified. Do not bundle until checked |
+| Thocky (Cherry MX Red, linear) | 32 presses, 16 releases | handygaber, "Keyboard clicking typing Cherry Red Mechanical", https://freesound.org/s/499773/ | CC0 1.0 |
+| Tactile (Cherry MX Clear) | 17 presses, 14 releases | humi74, "Mechanical keyboard clicking. Different keys (4)", https://freesound.org/s/412926/ | CC0 1.0 |
+| Clicky (Cherry MX Blue) | 3 presses, 9 releases | UberBosser, "wKey", "qKey", "ctrlKey", https://freesound.org/s/421581/ , /421583/ , /421584/ | CC0 1.0 |
 
-Reference for cutting and pitch variation: https://github.com/abraraltaf92/mechanify (MIT code).
+Space, Enter, Backspace and Shift use the same samples pitched down about 20 % for a deeper stabiliser sound. Blue has few source takes, so it is the weakest set. A Cherry Brown set (majod, https://freesound.org/s/400167/, CC0, verified) is planned to replace or extend Tactile.
 
 Mechvibes sound packs are not used: the repository states an MIT licence for the app code only, not for the sounds.
 
-## Other sounds (mouse click, trackpad thunk, gamepad)
+## Mouse, trackpad and gamepad sounds
 
-To be chosen from CC0 sources on Freesound or OpenGameArt and listed here with links.
+Synthesised from scratch by `tools/gen_ui_sounds.py` (damped sine bursts and noise), so they carry the project licence. They are not recordings.
 
 ## Fonts
 
-To be chosen from SIL OFL fonts (for example a monospace such as JetBrains Mono) and listed here.
+JetBrains Mono (Regular, Medium, Bold), SIL OFL 1.1, https://github.com/JetBrains/JetBrainsMono. Licence text in `third_party/JetBrainsMono-OFL.txt`.
 
 ## Icon
 
