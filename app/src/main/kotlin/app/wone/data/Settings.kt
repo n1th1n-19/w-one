@@ -54,6 +54,7 @@ data class Settings(
     val keepScreenOn: Boolean = true,
     val secureTyping: Boolean = false,
     val lastHost: String = "",
+    val slots: String = "",
     val gamepadLayouts: String = "",
     val gamepadActive: String = "",
 ) {
@@ -87,6 +88,7 @@ class SettingsStore(private val context: Context) {
         val keepOn = booleanPreferencesKey("keepOn")
         val secure = booleanPreferencesKey("secure")
         val lastHost = stringPreferencesKey("lastHost")
+        val slots = stringPreferencesKey("slots")
         val layouts = stringPreferencesKey("layouts")
         val activeLayout = stringPreferencesKey("activeLayout")
     }
@@ -123,6 +125,7 @@ class SettingsStore(private val context: Context) {
             p[K.keepOn] = n.keepScreenOn
             p[K.secure] = n.secureTyping
             p[K.lastHost] = n.lastHost
+            p[K.slots] = n.slots
             p[K.layouts] = n.gamepadLayouts
             p[K.activeLayout] = n.gamepadActive
         }
@@ -154,6 +157,7 @@ class SettingsStore(private val context: Context) {
             keepScreenOn = p[K.keepOn] ?: d.keepScreenOn,
             secureTyping = p[K.secure] ?: d.secureTyping,
             lastHost = p[K.lastHost] ?: d.lastHost,
+            slots = p[K.slots] ?: d.slots,
             gamepadLayouts = p[K.layouts] ?: d.gamepadLayouts,
             gamepadActive = p[K.activeLayout] ?: d.gamepadActive,
         )

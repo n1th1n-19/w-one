@@ -52,6 +52,11 @@ class HidEngine(private val context: Context) {
     private val _leds = MutableStateFlow(0)
     val leds: StateFlow<Int> = _leds.asStateFlow()
 
+    /** Why the last connection attempt failed, in words the user can act on. Null when fine. */
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    private var pendingSwitch: String? = null
     private var hid: BluetoothHidDevice? = null
     private var host: BluetoothDevice? = null
     private var registered = false
@@ -120,11 +125,42 @@ class HidEngine(private val context: Context) {
         }.map { Host(it.address, it.name ?: it.address) }.sortedBy { it.name.lowercase() }
     }
 
+    /**
+     * Connects to a paired computer. One attempt at a time: if a connection is already starting
+     * or open to this computer nothing is done, and a computer that never answers is given up on
+     * after a few seconds with a reason.
+     */
     fun connect(address: String): Boolean {
         val h = hid ?: return false
         if (!registered || !hasPermission()) return false
+        val cur = state.value
+        if (cur is HidState.Connected && cur.host.address == address) return true
+        if (cur is HidState.Connecting && cur.host.address == address) return true
         val device = adapter?.bondedDevices?.firstOrNull { it.address == address } ?: return false
-        return h.connect(device)
+        _error.value = null
+        val ok = h.connect(device)
+        if (ok) {
+            _state.value = HidState.Connecting(Host(device.address, device.name ?: device.address))
+            main.postDelayed({
+                val s = _state.value
+                if (s is HidState.Connecting && s.host.address == address) {
+                    runCatching { h.disconnect(device) }
+                    _error.value = "${s.host.name} did not answer. If it paired before an update, remove the phone on the computer and pair again."
+                    _state.value = HidState.Ready
+                }
+            }, 12000)
+        } else _error.value = "Could not start the connection. Turn Bluetooth off and on and try again."
+        return ok
+    }
+
+    /** Moves to another computer: closes the current connection first, then opens the new one. */
+    fun switchTo(address: String) {
+        val cur = state.value
+        if (cur is HidState.Connected && cur.host.address != address) {
+            pendingSwitch = address
+            disconnect()
+            main.postDelayed({ pendingSwitch?.let { a -> pendingSwitch = null; connect(a) } }, 3000)
+        } else connect(address)
     }
 
     fun disconnect() {
@@ -280,6 +316,7 @@ class HidEngine(private val context: Context) {
                         if (host?.address == device.address) host = null
                         _leds.value = 0
                         if (registered) _state.value = HidState.Ready
+                        pendingSwitch?.let { a -> pendingSwitch = null; main.post { connect(a) } }
                     }
                 }
             }

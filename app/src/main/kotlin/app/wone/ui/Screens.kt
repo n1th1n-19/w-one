@@ -202,34 +202,8 @@ private fun HomeTab(nav: (Screen) -> Unit, openComputers: () -> Unit) {
 
 @Composable
 private fun ComputersTab(nav: (Screen) -> Unit) {
-    val ctx = LocalContext.current
-    val app = ctx.wone
-    val state by app.engine.state.collectAsState()
-    var computers by remember { mutableStateOf(app.engine.pairedComputers()) }
-    // Bonds change outside the app (the computer pairs with us), so look again every couple of seconds.
-    LaunchedEffect(Unit) { while (true) { computers = app.engine.pairedComputers(); delay(2000) } }
-    val cs = MaterialTheme.colorScheme
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Card(colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
-            if (computers.isEmpty()) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("No computers yet", style = MaterialTheme.typography.titleMedium)
-                    Text("Pair one below. After that it appears here and reconnects on its own.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
-                }
-            }
-            computers.forEachIndexed { i, h ->
-                val on = (state as? HidState.Connected)?.host?.address == h.address
-                val connecting = (state as? HidState.Connecting)?.host?.address == h.address
-                ListItem(
-                    headlineContent = { Text(h.name) },
-                    supportingContent = { Text(if (on) "Connected" else if (connecting) "Connecting" else "Tap to connect") },
-                    leadingContent = { Icon(Icons.computer, contentDescription = null) },
-                    colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
-                    modifier = Modifier.clickable(enabled = !on && !connecting) { app.engine.connect(h.address) },
-                )
-                if (i < computers.lastIndex) HorizontalDivider(Modifier.padding(start = 72.dp), color = cs.outlineVariant)
-            }
-        }
+        HostList()
         Button({ nav(Screen.Pairing) }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.plus, contentDescription = null, modifier = Modifier.size(18.dp)); Spacer(Modifier.size(8.dp)); Text("Pair a new computer")
         }

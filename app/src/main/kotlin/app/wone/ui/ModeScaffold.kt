@@ -75,6 +75,7 @@ fun HostChip(modifier: Modifier = Modifier) {
  * Frame shared by every landscape mode: a Material 3 navigation rail on the left (every mode and
  * Home, one tap), a slim bar for the mode's own controls, then the mode itself.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ModeScaffold(
     mode: Mode?,
@@ -82,6 +83,7 @@ fun ModeScaffold(
     bar: @Composable RowScope.() -> Unit,
     content: @Composable () -> Unit,
 ) {
+    var showHosts by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxSize().background(Pal.bg).safeDrawingPadding()) {
         NavigationRail(
             containerColor = Pal.surface,
@@ -100,6 +102,13 @@ fun ModeScaffold(
             }
             NavigationRailItem(
                 selected = false,
+                onClick = { showHosts = true },
+                icon = { Icon(Icons.devices, contentDescription = "Computers") },
+                alwaysShowLabel = false,
+                label = { Text("Computers") },
+            )
+            NavigationRailItem(
+                selected = false,
                 onClick = { nav(Screen.Home) },
                 icon = { Icon(Icons.home, contentDescription = "Home") },
                 alwaysShowLabel = false,
@@ -114,6 +123,15 @@ fun ModeScaffold(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) { bar() }
             Box(Modifier.weight(1f).fillMaxWidth()) { content() }
+        }
+    }
+    if (showHosts) {
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showHosts = false }) {
+            Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Computers", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+                HostList()
+                androidx.compose.material3.TextButton({ showHosts = false; nav(Screen.Pairing) }) { Text("Pair a new computer") }
+            }
         }
     }
 }

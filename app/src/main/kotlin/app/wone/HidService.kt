@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 class HidService : Service() {
 
     private var job: Job? = null
+    private var reconnect: Job? = null
+    private var attempts = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -39,14 +41,25 @@ class HidService : Service() {
         if (job == null) job = wone.scope.launch {
             engine.state.collect { s ->
                 getSystemService(NotificationManager::class.java).notify(ID, notification(s))
-                if (s is HidState.Ready && wone.settings.flow.first().reconnectLast) {
-                    val last = wone.settings.flow.first().lastHost
-                    if (last.isNotEmpty()) engine.connect(last)
-                }
-                if (s is HidState.Connected) wone.settings.update { it.copy(lastHost = s.host.address) }
+                if (s is HidState.Connected) { attempts = 0; reconnect?.cancel(); wone.settings.update { it.copy(lastHost = s.host.address) } }
+                if (s is HidState.Ready) startReconnect(engine)
             }
         }
         return START_STICKY
+    }
+
+    /**
+     * After the phone is ready, give the computer a moment to connect by itself (both sides
+     * starting at once makes the computer refuse), then try the last computer a few times.
+     */
+    private fun startReconnect(engine: app.wone.hid.HidEngine) {
+        if (reconnect?.isActive == true || attempts >= 3) return
+        reconnect = wone.scope.launch {
+            val st = wone.settings.flow.first()
+            if (!st.reconnectLast || st.lastHost.isEmpty()) return@launch
+            kotlinx.coroutines.delay(if (attempts == 0) 2500 else 4000L * attempts)
+            if (engine.state.value is HidState.Ready) { attempts++; engine.connect(st.lastHost) }
+        }
     }
 
     private fun startInForeground(n: Notification) {
