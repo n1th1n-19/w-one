@@ -222,3 +222,24 @@ fun Gap(h: Dp) = Spacer(Modifier.height(h))
 
 @Composable
 fun GapW(w: Dp) = Spacer(Modifier.width(w))
+
+/** Square icon button, same spring feel as [WButton]. */
+@Composable
+fun IconBtn(
+    icon: ImageVector, description: String, onClick: () -> Unit,
+    modifier: Modifier = Modifier, active: Boolean = false, size: Dp = 44.dp,
+) {
+    var pressed by remember { mutableStateOf(false) }
+    val s by animateFloatAsState(if (pressed) 0.92f else 1f, pressSpring(), label = "ib")
+    val accent = LocalAccent.current
+    Box(
+        modifier.scale(s).size(size).clip(RoundedCornerShape(12.dp))
+            .background(if (active) accent else Pal.raised)
+            .border(1.dp, if (active) accent else Pal.line, RoundedCornerShape(12.dp))
+            .semantics { role = Role.Button; contentDescription = description }
+            .pointerInput(Unit) {
+                detectTapGestures(onPress = { pressed = true; val ok = tryAwaitRelease(); pressed = false; if (ok) onClick() })
+            },
+        contentAlignment = Alignment.Center,
+    ) { Ico(icon, if (active) Pal.bg else Pal.text, 22.dp) }
+}

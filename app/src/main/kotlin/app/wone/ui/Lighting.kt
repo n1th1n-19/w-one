@@ -81,7 +81,7 @@ fun Modifier.ringLight(
     }
 }
 
-class KeyLight(val index: Int, val nx: Float, val ny: Float, val col: Int, val row: Int, val seed: Float)
+class KeyLight(val index: Int, val label: String, val nx: Float, val ny: Float, val col: Int, val row: Int, val seed: Float)
 class Hit(val index: Int, val nx: Float, val ny: Float, val col: Int, val row: Int, val t0: Float)
 
 /**
@@ -90,7 +90,7 @@ class Hit(val index: Int, val nx: Float, val ny: Float, val col: Int, val row: I
  */
 fun keyLight(
     fx: KeyboardFx, k: KeyLight, t: Float, speed: Float, accent: Color, aspect: Float,
-    hits: List<Hit>, heat: IntArray, heatMax: Int,
+    hits: List<Hit>, heat: Map<String, Int>, heatMax: Int,
 ): Color {
     val tau = 2 * PI.toFloat()
     val ph = t / max(0.5f, speed)
@@ -152,7 +152,7 @@ fun keyLight(
             accent.copy(alpha = a)
         }
         KeyboardFx.Heatmap -> {
-            val n = heat.getOrElse(k.index) { 0 }
+            val n = heat[k.label] ?: 0
             if (n == 0) Color(0xFF2A3140).copy(alpha = 0.6f) else {
                 val v = n.toFloat() / max(1, heatMax)
                 when {

@@ -116,11 +116,6 @@ class HidEngine(private val context: Context) {
     // ---- sending -------------------------------------------------------------------------
 
     private val lock = Any()
-    private var mouseButtons = 0
-    private var accDx = 0
-    private var accDy = 0
-    private var accWheel = 0
-    private var accPan = 0
     private var mouseScheduled = false
     private var latestPad: ByteArray? = null
     private var latestTouch: ByteArray? = null
@@ -140,37 +135,43 @@ class HidEngine(private val context: Context) {
         worker.execute { send(ReportId.KEYBOARD, data) }
     }
 
-    /** Deltas are summed until the sender thread picks them up, so no motion is lost under load. */
+    private class MouseMsg(var buttons: Int, var dx: Int, var dy: Int, var wheel: Int, var pan: Int)
+    private val mouseQueue = java.util.ArrayDeque<MouseMsg>()
+
+    /**
+     * Button changes keep their order; consecutive messages with the same buttons are merged,
+     * so a burst of motion is summed instead of queued report by report.
+     */
     fun mouse(buttons: Int, dx: Int, dy: Int, wheel: Int = 0, pan: Int = 0) {
         synchronized(lock) {
-            mouseButtons = buttons
-            accDx += dx; accDy += dy; accWheel += wheel; accPan += pan
+            val last = mouseQueue.peekLast()
+            if (last != null && last.buttons == buttons) {
+                last.dx += dx; last.dy += dy; last.wheel += wheel; last.pan += pan
+            } else {
+                mouseQueue.addLast(MouseMsg(buttons, dx, dy, wheel, pan))
+            }
             if (mouseScheduled) return
             mouseScheduled = true
         }
-        worker.execute(::flushMouse)
+        worker.execute(::drainMouse)
     }
 
-    private fun flushMouse() {
+    private fun drainMouse() {
         while (true) {
-            val b: Int; val dx: Int; val dy: Int; val w: Int; val p: Int
+            val m: MouseMsg
+            val dx: Int; val dy: Int; val w: Int; val p: Int
             synchronized(lock) {
-                b = mouseButtons
-                dx = accDx.coerceIn(-127, 127); dy = accDy.coerceIn(-127, 127)
-                w = accWheel.coerceIn(-127, 127); p = accPan.coerceIn(-127, 127)
-                accDx -= dx; accDy -= dy; accWheel -= w; accPan -= p
-                if (dx == 0 && dy == 0 && w == 0 && p == 0 && !sentButtonsChanged(b)) {
-                    mouseScheduled = false
-                    return
-                }
+                val head = mouseQueue.peekFirst()
+                if (head == null) { mouseScheduled = false; return }
+                m = head
+                dx = m.dx.coerceIn(-127, 127); dy = m.dy.coerceIn(-127, 127)
+                w = m.wheel.coerceIn(-127, 127); p = m.pan.coerceIn(-127, 127)
+                m.dx -= dx; m.dy -= dy; m.wheel -= w; m.pan -= p
+                if (m.dx == 0 && m.dy == 0 && m.wheel == 0 && m.pan == 0) mouseQueue.pollFirst()
             }
-            send(ReportId.MOUSE, HidReports.mouse(b, dx, dy, w, p))
-            lastSentButtons = b
+            send(ReportId.MOUSE, HidReports.mouse(m.buttons, dx, dy, w, p))
         }
     }
-
-    private var lastSentButtons = 0
-    private fun sentButtonsChanged(b: Int) = b != lastSentButtons
 
     /** Only the newest gamepad state matters; older ones are replaced while the sender is busy. */
     fun gamepad(data: ByteArray) {
