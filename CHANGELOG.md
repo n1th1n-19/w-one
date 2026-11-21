@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Fixed the first-launch intro: the headline was dark on dark and the Skip button sat under the status bar.
+- Keyboard backlight is off by default (pick an effect with the sun button on the keyboard screen).
+
 ## 0.1.1
 
 - Gamepad: built-in layouts for browser games ("Browser: WASD and mouse" with a look area and mouse buttons, "Browser: arrows"), sticks and D-pads that press keys instead of gamepad axes, and a layout picker in the gamepad bar.

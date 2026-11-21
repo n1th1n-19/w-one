@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -375,7 +376,8 @@ fun IntroScreen(onDone: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val pager = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize().background(cs.background).padding(24.dp)) {
+    androidx.compose.material3.Surface(color = cs.background, contentColor = cs.onBackground, modifier = Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             if (pager.currentPage < 2) TextButton(onDone) { Text("Skip") }
         }
@@ -424,6 +426,7 @@ fun IntroScreen(onDone: () -> Unit) {
                 Text(if (pager.currentPage == 2) "Get started" else "Next")
             }
         }
+    }
     }
 }
 

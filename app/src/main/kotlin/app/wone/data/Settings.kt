@@ -35,7 +35,7 @@ data class Settings(
     val ringFx: RingFx = RingFx.Off,
     val theme: ThemeMode = ThemeMode.Dark,
     val dynamicColor: Boolean = true,
-    val keyboardFx: KeyboardFx = KeyboardFx.Wave,
+    val keyboardFx: KeyboardFx = KeyboardFx.Off,
     val speed: Float = 4f,           // seconds per cycle, 1..10; lower is faster
     val brightness: Float = 0.9f,
     val accentIndex: Int = 0,
