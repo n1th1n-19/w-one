@@ -109,7 +109,7 @@ fun WButton(
     val s by animateFloatAsState(if (pressed) 0.95f else 1f, pressSpring(), label = "press")
     val accent = LocalAccent.current
     val fill = if (primary) accent else Pal.raised
-    val ink = if (primary) Pal.bg else Pal.text
+    val ink = if (primary) Pal.onAccent else Pal.text
     Box(
         modifier
             .scale(s)
@@ -160,7 +160,7 @@ fun WSwitch(checked: Boolean, onChange: (Boolean) -> Unit, label: String) {
                 .graphicsLayer { translationX = pos * 20.dp.toPx() }
                 .size(22.dp)
                 .clip(RoundedCornerShape(11.dp))
-                .background(if (checked) Pal.bg else Pal.muted),
+                .background(if (checked) Pal.onAccent else Pal.muted),
         )
     }
 }
@@ -207,7 +207,7 @@ fun <T> Segmented(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> 
                     .semantics { role = Role.RadioButton }
                     .pointerInput(v) { detectTapGestures { onSelect(v) } },
                 contentAlignment = Alignment.Center,
-            ) { Tx(text, Type.label.copy(color = if (on) Pal.bg else Pal.text, fontSize = 12.sp)) }
+            ) { Tx(text, Type.label.copy(color = if (on) Pal.onAccent else Pal.text, fontSize = 12.sp)) }
         }
     }
 }
@@ -241,5 +241,5 @@ fun IconBtn(
                 detectTapGestures(onPress = { pressed = true; val ok = tryAwaitRelease(); pressed = false; if (ok) onClick() })
             },
         contentAlignment = Alignment.Center,
-    ) { Ico(icon, if (active) Pal.bg else Pal.text, 22.dp) }
+    ) { Ico(icon, if (active) Pal.onAccent else Pal.text, 22.dp) }
 }

@@ -249,7 +249,7 @@ fun KeyboardScreen(nav: (Screen) -> Unit) {
                     if (shiftOn && d.shiftChar != null) label = d.shiftChar
                     if (d.kind == KeyKind.Space) label = "space"
                     val ink = when {
-                        st == StickyState.Locked -> Pal.bg
+                        st == StickyState.Locked -> Pal.onAccent
                         isLayer || held || st == StickyState.Latched -> accent
                         else -> if (a > 0f) lerp(Pal.text, lc, a * 0.55f) else Pal.text
                     }

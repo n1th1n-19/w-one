@@ -125,8 +125,8 @@ fun AirMouseScreen(nav: (Screen) -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Tx(if (moving) "moving" else "hold to move", Type.title, if (moving) Pal.bg else Pal.text)
-                    Tx("let go to reposition your hand", Type.label, if (moving) Pal.bg else Pal.faint)
+                    Tx(if (moving) "moving" else "hold to move", Type.title, if (moving) Pal.onAccent else Pal.text)
+                    Tx("let go to reposition your hand", Type.label, if (moving) Pal.onAccent else Pal.faint)
                 }
             }
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {

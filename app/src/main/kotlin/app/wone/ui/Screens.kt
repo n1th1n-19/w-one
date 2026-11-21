@@ -317,7 +317,7 @@ fun SettingsScreen(nav: (Screen) -> Unit) {
                         .let { if (i == s.accentIndex) it.then(Modifier.padding(0.dp)) else it }
                         .pointerInput(i) { detectTapGestures { upd { it.copy(accentIndex = i) } } },
                     contentAlignment = Alignment.Center,
-                ) { if (i == s.accentIndex) Ico(Icons.check, Pal.bg, 22.dp) }
+                ) { if (i == s.accentIndex) Ico(Icons.check, Pal.onAccent, 22.dp) }
             }
         }
         Gap(4.dp)

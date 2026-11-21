@@ -216,7 +216,7 @@ private fun Chip(text: String, on: Boolean, onClick: () -> Unit) {
         Modifier.height(34.dp).clip(RoundedCornerShape(8.dp)).background(if (on) accent else Pal.key)
             .pointerInput(text) { detectTapGestures { onClick() } }.padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
-    ) { Tx(text, Type.label.copy(color = if (on) Pal.bg else Pal.text)) }
+    ) { Tx(text, Type.label.copy(color = if (on) Pal.onAccent else Pal.text)) }
 }
 
 @Composable

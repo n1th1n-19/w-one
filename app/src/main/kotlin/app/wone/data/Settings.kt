@@ -19,6 +19,7 @@ enum class KeyboardFx(val label: String) {
     val reactsToTyping get() = this == Reactive || this == Splash || this == Cross || this == Heatmap
 }
 
+enum class ThemeMode(val label: String) { Dark("Dark"), Light("Light"), System("System") }
 enum class RingFx(val label: String) { Wave("Wave"), Breathe("Breathe"), Static("Static"), Off("Off") }
 enum class SwitchType(val label: String, val feel: String) {
     Thocky("Thocky", "Linear, deep"), Tactile("Tactile", "Bump, crisp"), Clicky("Clicky", "Sharp click")
@@ -31,7 +32,9 @@ val AccentChoices = listOf(0xFF3DDC97, 0xFF4DA3FF, 0xFFFFB224, 0xFFFF5C7A, 0xFFB
 
 data class Settings(
     val onboardingDone: Boolean = false,
-    val ringFx: RingFx = RingFx.Wave,
+    val ringFx: RingFx = RingFx.Off,
+    val theme: ThemeMode = ThemeMode.Dark,
+    val dynamicColor: Boolean = true,
     val keyboardFx: KeyboardFx = KeyboardFx.Wave,
     val speed: Float = 4f,           // seconds per cycle, 1..10; lower is faster
     val brightness: Float = 0.9f,
@@ -62,6 +65,8 @@ class SettingsStore(private val context: Context) {
     private object K {
         val onboarding = booleanPreferencesKey("onboarding")
         val ringFx = stringPreferencesKey("ringFx")
+        val theme = stringPreferencesKey("theme")
+        val dynamic = booleanPreferencesKey("dynamicColor")
         val kbFx = stringPreferencesKey("kbFx")
         val speed = floatPreferencesKey("speed")
         val brightness = floatPreferencesKey("brightness")
@@ -95,6 +100,8 @@ class SettingsStore(private val context: Context) {
             val n = change(cur)
             p[K.onboarding] = n.onboardingDone
             p[K.ringFx] = n.ringFx.name
+            p[K.theme] = n.theme.name
+            p[K.dynamic] = n.dynamicColor
             p[K.kbFx] = n.keyboardFx.name
             p[K.speed] = n.speed
             p[K.brightness] = n.brightness
@@ -123,6 +130,8 @@ class SettingsStore(private val context: Context) {
         return Settings(
             onboardingDone = p[K.onboarding] ?: d.onboardingDone,
             ringFx = p.enum(K.ringFx, d.ringFx),
+            theme = p.enum(K.theme, d.theme),
+            dynamicColor = p[K.dynamic] ?: d.dynamicColor,
             keyboardFx = p.enum(K.kbFx, d.keyboardFx),
             speed = p[K.speed] ?: d.speed,
             brightness = p[K.brightness] ?: d.brightness,

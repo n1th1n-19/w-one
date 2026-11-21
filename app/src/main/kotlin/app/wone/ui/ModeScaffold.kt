@@ -176,7 +176,7 @@ fun LightingPanel(onClose: () -> Unit) {
                                 .pointerInput(fx) { detectTapGestures { scope.launch { ctx.wone.settings.update { it.copy(keyboardFx = fx) } } } }
                                 .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.Center,
-                        ) { Tx(fx.label, Type.label.copy(color = if (on) Pal.bg else Pal.text)) }
+                        ) { Tx(fx.label, Type.label.copy(color = if (on) Pal.onAccent else Pal.text)) }
                     }
                 }
             }

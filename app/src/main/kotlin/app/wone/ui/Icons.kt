@@ -2,58 +2,46 @@ package app.wone.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 
-/** Stroke icons on a 24 unit grid, one consistent weight. */
-private fun icon(name: String, vararg paths: String): ImageVector {
-    val b = ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f)
-    for (d in paths) {
-        b.addPath(
-            pathData = addPathNodes(d),
-            stroke = SolidColor(Color.White),
-            strokeLineWidth = 1.8f,
-            strokeLineCap = StrokeCap.Round,
-            strokeLineJoin = StrokeJoin.Round,
-        )
-    }
+/**
+ * Material Symbols (outlined, weight 400), Apache-2.0, from github.com/google/material-design-icons.
+ * Each path is on the symbols' 960 unit grid; the group moves it from the SVG's negative y origin.
+ */
+private fun sym(name: String, vararg paths: String): ImageVector {
+    val b = ImageVector.Builder(name, 24.dp, 24.dp, 960f, 960f)
+    b.addGroup(translationY = 960f)
+    for (d in paths) b.addPath(pathData = addPathNodes(d), fill = SolidColor(Color.Black))
+    b.clearGroup()
     return b.build()
 }
 
 object Icons {
-    val keyboard = icon(
-        "keyboard",
-        "M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z",
-        "M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10",
-    )
-    val trackpad = icon(
-        "trackpad",
-        "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
-        "M2 15h20M12 15v5",
-    )
-    val airMouse = icon(
-        "airMouse",
-        "M12 3a5 5 0 0 1 5 5v8a5 5 0 0 1-10 0V8a5 5 0 0 1 5-5z",
-        "M12 3v6M7 9h10",
-    )
-    val gamepad = icon(
-        "gamepad",
-        "M7 7h10a5 5 0 0 1 5 5l-.7 4.2a2.6 2.6 0 0 1-4.6 1.2L15.5 16h-7l-1.2 1.4a2.6 2.6 0 0 1-4.6-1.2L2 12a5 5 0 0 1 5-5z",
-        "M7 10v4M5 12h4M16 11h.01M18 13h.01",
-    )
-    val sliders = icon("sliders", "M4 7h9M17 7h3M4 17h3M11 17h9M13 5v4M7 15v4")
-    val back = icon("back", "M15 5l-7 7 7 7")
-    val chevron = icon("chevron", "M6 9l6 6 6-6")
-    val close = icon("close", "M6 6l12 12M18 6L6 18")
-    val light = icon("light", "M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5V15h8v-1.5A6 6 0 0 0 12 3z")
-    val bluetooth = icon("bluetooth", "M7 7l10 10-5 5V2l5 5L7 17")
-    val home = icon("home", "M4 11l8-7 8 7M6 10v10h12V10")
-    val edit = icon("edit", "M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4")
-    val plus = icon("plus", "M12 5v14M5 12h14")
-    val check = icon("check", "M5 12l5 5L20 7")
-    val up = icon("up", "M6 15l6-6 6 6")
-    val down = icon("down", "M6 9l6 6 6-6")
+    val keyboard = sym("keyboard", "M160-200q-33 0-56.5-23.5T80-280v-400q0-33 23.5-56.5T160-760h640q33 0 56.5 23.5T880-680v400q0 33-23.5 56.5T800-200H160Zm0-80h640v-400H160v400Zm160-40h320v-80H320v80ZM200-440h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80ZM200-560h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80ZM160-280v-400 400Z")
+    val trackpad = sym("trackpad", "M660-160q58 0 99-41t41-99v-60H520v60q0 58 41 99t99 41ZM521-440h99v-114q-38 11-65.5 42T521-440Zm179 0h99q-6-41-33.5-72T700-554v114ZM660-80q-92 0-156-64t-64-156v-120q0-92 64-156t156-64q92 0 156 64t64 156v120q0 92-64 156T660-80ZM160-240v-480 480Zm0 80q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720H160v480h201v80H160Z")
+    val airMouse = sym("airMouse", "M480-80q-116 0-198-82t-82-198v-240q0-116 82-198t198-82q116 0 198 82t82 198v240q0 116-82 198T480-80Zm40-520h160q0-72-45.5-127T520-796v196Zm-240 0h160v-196q-69 14-114.5 69T280-600Zm200 440q83 0 141.5-58.5T680-360v-160H280v160q0 83 58.5 141.5T480-160Zm0-360Zm40-80Zm-80 0Zm40 80Z")
+    val gamepad = sym("gamepad", "M182-200q-51 0-79-35.5T82-322l42-300q9-60 53.5-99T282-760h396q60 0 104.5 39t53.5 99l42 300q7 51-21 86.5T778-200q-21 0-39-7.5T706-230l-90-90H344l-90 90q-15 15-33 22.5t-39 7.5Zm16-86 114-114h336l114 114q2 2 16 6 11 0 17.5-6.5T800-304l-44-308q-4-29-26-48.5T678-680H282q-30 0-52 19.5T204-612l-44 308q-2 11 4.5 17.5T182-280q2 0 16-6Zm482-154q17 0 28.5-11.5T720-480q0-17-11.5-28.5T680-520q-17 0-28.5 11.5T640-480q0 17 11.5 28.5T680-440Zm-80-120q17 0 28.5-11.5T640-600q0-17-11.5-28.5T600-640q-17 0-28.5 11.5T560-600q0 17 11.5 28.5T600-560ZM310-440h60v-70h70v-60h-70v-70h-60v70h-70v60h70v70Zm170-40Z")
+    val sliders = sym("sliders", "m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z")
+    val back = sym("back", "m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z")
+    val chevron = sym("chevron", "M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z")
+    val close = sym("close", "m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z")
+    val light = sym("light", "M480-360q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Zm0 80q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM200-440H40v-80h160v80Zm720 0H760v-80h160v80ZM440-760v-160h80v160h-80Zm0 720v-160h80v160h-80ZM256-650l-101-97 57-59 96 100-52 56Zm492 496-97-101 53-55 101 97-57 59Zm-98-550 97-101 59 57-100 96-56-52ZM154-212l101-97 55 53-97 101-59-57Zm326-268Z")
+    val bluetooth = sym("bluetooth", "M440-80v-304L256-200l-56-56 224-224-224-224 56-56 184 184v-304h40l228 228-172 172 172 172L480-80h-40Zm80-496 76-76-76-74v150Zm0 342 76-74-76-76v150Z")
+    val home = sym("home", "M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z")
+    val edit = sym("edit", "M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z")
+    val plus = sym("plus", "M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z")
+    val check = sym("check", "M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z")
+    val up = sym("up", "m296-345-56-56 240-240 240 240-56 56-184-184-184 184Z")
+    val down = sym("down", "M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z")
+    val devices = sym("devices", "M80-160v-120h80v-440q0-33 23.5-56.5T240-800h600v80H240v440h240v120H80Zm520 0q-17 0-28.5-11.5T560-200v-400q0-17 11.5-28.5T600-640h240q17 0 28.5 11.5T880-600v400q0 17-11.5 28.5T840-160H600Zm40-120h160v-280H640v280Zm0 0h160-160Z")
+    val music = sym("music", "M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z")
+    val play = sym("play", "M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z")
+    val pause = sym("pause", "M520-200v-560h240v560H520Zm-320 0v-560h240v560H200Zm400-80h80v-400h-80v400Zm-320 0h80v-400h-80v400Zm0-400v400-400Zm320 0v400-400Z")
+    val next = sym("next", "M660-240v-480h80v480h-80Zm-440 0v-480l360 240-360 240Zm80-240Zm0 90 136-90-136-90v180Z")
+    val previous = sym("previous", "M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Zm-80-240Zm0 90v-180l-136 90 136 90Z")
+    val volume = sym("volume", "M560-131v-82q90-26 145-100t55-168q0-94-55-168T560-749v-82q124 28 202 125.5T840-481q0 127-78 224.5T560-131ZM120-360v-240h160l200-200v640L280-360H120Zm440 40v-322q47 22 73.5 66t26.5 96q0 51-26.5 94.5T560-320ZM400-606l-86 86H200v80h114l86 86v-252ZM300-480Z")
+    val computer = sym("computer", "M40-120v-80h880v80H40Zm120-120q-33 0-56.5-23.5T80-320v-440q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v440q0 33-23.5 56.5T800-240H160Zm0-80h640v-440H160v440Zm0 0v-440 440Z")
+    val laptop = sym("laptop", "M80-160q-33 0-56.5-23.5T0-240h160q-33 0-56.5-23.5T80-320v-440q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v440q0 33-23.5 56.5T800-240h160q0 33-23.5 56.5T880-160H80Zm400-40q17 0 28.5-11.5T520-240q0-17-11.5-28.5T480-280q-17 0-28.5 11.5T440-240q0 17 11.5 28.5T480-200ZM160-320h640v-440H160v440Zm0 0v-440 440Z")
 }
