@@ -30,7 +30,7 @@ object HidReports {
 
     /**
      * @param hat 0 released, 1 up, then clockwise to 8 up-left.
-     * @param lx stick and trigger values: sticks -127..127, triggers 0..255.
+     * @param lx stick values are -127..127 (sent centred on 128), triggers are 0..255.
      */
     fun gamepad(
         buttons: Int, hat: Int,
@@ -41,11 +41,11 @@ object HidReports {
         r[0] = buttons.toByte()
         r[1] = (buttons shr 8).toByte()
         r[2] = (hat and 0x0F).toByte()
-        r[3] = lx.coerceIn(-127, 127).toByte()
-        r[4] = ly.coerceIn(-127, 127).toByte()
-        r[5] = rx.coerceIn(-127, 127).toByte()
-        r[6] = ry.coerceIn(-127, 127).toByte()
-        r[7] = lt.coerceIn(0, 255).toByte()
+        r[3] = (lx.coerceIn(-127, 127) + 128).toByte()
+        r[4] = (ly.coerceIn(-127, 127) + 128).toByte()
+        r[5] = lt.coerceIn(0, 255).toByte()
+        r[6] = (rx.coerceIn(-127, 127) + 128).toByte()
+        r[7] = (ry.coerceIn(-127, 127) + 128).toByte()
         r[8] = rt.coerceIn(0, 255).toByte()
         return r
     }
@@ -56,15 +56,16 @@ object HidReports {
         val n = minOf(contacts.size, Touchpad.MAX_CONTACTS)
         for (i in 0 until n) {
             val c = contacts[i]
-            val o = i * 5
+            val o = i * Touchpad.CONTACT_BYTES
             r[o] = ((if (c.tip) 1 else 0) or ((c.id and 0x7F) shl 1)).toByte()
             val x = c.x.coerceIn(0, Touchpad.X_MAX)
             val y = c.y.coerceIn(0, Touchpad.Y_MAX)
             r[o + 1] = x.toByte(); r[o + 2] = (x shr 8).toByte()
             r[o + 3] = y.toByte(); r[o + 4] = (y shr 8).toByte()
         }
-        r[25] = n.toByte()
-        r[26] = if (click) 1 else 0
+        val tail = Touchpad.MAX_CONTACTS * Touchpad.CONTACT_BYTES
+        r[tail] = n.toByte()
+        r[tail + 1] = if (click) 1 else 0
         return r
     }
 }

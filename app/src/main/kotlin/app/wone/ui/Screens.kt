@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -149,7 +150,8 @@ fun HomeScreen(nav: (Screen) -> Unit) {
     }
     val (dot, status) = hostStatus()
     var computers by remember { mutableStateOf(app.engine.pairedComputers()) }
-    LaunchedEffect(state) { computers = app.engine.pairedComputers() }
+    // Bonds change outside the app (the computer pairs with us), so look again every couple of seconds.
+    LaunchedEffect(Unit) { while (true) { computers = app.engine.pairedComputers(); delay(2000) } }
 
     Column(Modifier.fillMaxSize().background(Pal.bg).safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -210,7 +212,7 @@ fun HomeScreen(nav: (Screen) -> Unit) {
                         Tx(m.title, Type.heading)
                         Tx(m.hint, Type.label)
                     }
-                    Ico(Icons.chevron, Pal.faint, 18.dp, Modifier.padding(0.dp))
+                    Ico(Icons.chevron, Pal.faint, 18.dp, Modifier.graphicsLayer { rotationZ = -90f })
                 }
                 if (i < Mode.entries.lastIndex) Box(Modifier.fillMaxWidth().padding(start = 54.dp).height(1.dp).background(Pal.line))
             }

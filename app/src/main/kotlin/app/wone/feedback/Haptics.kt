@@ -47,8 +47,8 @@ class Haptics(context: Context) {
 
     /** A keyboard key going down: short, light. */
     fun key() = play(
-        if (level == HapticLevel.Rich) primitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.7f) ?: predefined(VibrationEffect.EFFECT_TICK)
-        else predefined(VibrationEffect.EFFECT_TICK),
+        if (level == HapticLevel.Rich) primitive(VibrationEffect.Composition.PRIMITIVE_CLICK, 0.6f) ?: predefined(VibrationEffect.EFFECT_CLICK)
+        else predefined(VibrationEffect.EFFECT_CLICK),
     )
 
     /** Face buttons, bumpers, mouse buttons: a firm click. */

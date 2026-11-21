@@ -61,9 +61,9 @@ class TouchpadTest {
         assertEquals(1, t.frame().size)
     }
 
-    @Test fun trackerLimitsToFiveContacts() {
+    @Test fun trackerLimitsContacts() {
         val t = ContactTracker()
-        for (i in 0L until 5) assertTrue(t.down(i, 0, 0))
+        for (i in 0L until app.wone.hid.Touchpad.MAX_CONTACTS) assertTrue(t.down(i, 0, 0))
         assertFalse(t.down(9, 0, 0))
     }
 

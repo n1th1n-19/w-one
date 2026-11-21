@@ -159,6 +159,7 @@ fun KeyboardScreen(nav: (Screen) -> Unit) {
         mode = Mode.Keyboard, nav = nav,
         bar = {
             PreviewBar(typed.value, settings.secureTyping, Modifier.weight(1f))
+            IconBtn(Icons.close, "Clear typed text", { typed.value = "" })
             IconBtn(Icons.light, "Lighting effects", { panel = !panel }, active = panel)
         },
     ) {

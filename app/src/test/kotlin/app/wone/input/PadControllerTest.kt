@@ -32,7 +32,7 @@ class PadControllerTest {
 
     @Test fun stickScalesToSignedByte() {
         pad.setStick(0, 1f, -1f)
-        assertEquals(127, last[3].toInt()); assertEquals(-127, last[4].toInt())
+        assertEquals(255, last[3].toInt() and 0xFF); assertEquals(1, last[4].toInt() and 0xFF)
     }
 
     @Test fun keyBindingSendsKeyboardReport() {
@@ -59,6 +59,6 @@ class PadControllerTest {
     @Test fun releaseAllClearsEverything() {
         pad.setButton(btn(Bind.Pad(PadBits.B)), true); pad.setStick(0, 1f, 1f)
         pad.releaseAll()
-        assertEquals(0, last[0].toInt()); assertEquals(0, last[3].toInt())
+        assertEquals(0, last[0].toInt()); assertEquals(128, last[3].toInt() and 0xFF)
     }
 }

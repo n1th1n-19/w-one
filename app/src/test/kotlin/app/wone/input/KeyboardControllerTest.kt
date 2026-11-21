@@ -32,7 +32,7 @@ class KeyboardControllerTest {
         kb.up(c)
         assertEquals(StickyState.Off, kb.stateOf(Keys.CTRL))
         assertEquals(0 to emptyList<Int>(), rec.reports.last())
-        assertEquals(listOf("[Ctrl+C]"), typed)
+        assertEquals(emptyList<String>(), typed)
     }
 
     @Test fun doubleTapLocksAndThirdTapClears() {
@@ -58,6 +58,14 @@ class KeyboardControllerTest {
         val brace = Keys.of("{")
         kb.down(brace)
         assertEquals(Keys.SHIFT to listOf(0x1E, 0x2F), rec.reports.last())
+    }
+
+    @Test fun previewIgnoresEnterAndArrows() {
+        for (l in listOf("⏎", "←", "Tab", "Esc", "F5")) { val k = Keys.of(l); kb.down(k); kb.up(k) }
+        assertEquals(emptyList<String>(), typed)
+        val sp = Keys.of("space"); kb.down(sp); kb.up(sp)
+        val bs = Keys.of("⌫"); kb.down(bs); kb.up(bs)
+        assertEquals(listOf(" ", "\b"), typed)
     }
 
     @Test fun resetReleasesEverything() {

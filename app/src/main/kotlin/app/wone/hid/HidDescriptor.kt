@@ -11,23 +11,26 @@ object ReportId {
 }
 
 /** Sizes of report payloads, not counting the report id byte. */
+object Touchpad {
+    // Android's Bluetooth stack truncates SDP attributes near 400 bytes, and a truncated HID
+    // descriptor makes BlueZ drop the connection. The whole descriptor must stay under that.
+    const val MAX_CONTACTS = 3
+    const val X_MAX = 4095
+    const val Y_MAX = 4095
+
+    // Both axes share one scale: 4095 steps over 100 mm (unit exponent -2 on cm, 0.1 mm steps).
+    // libinput uses this to scale motion.
+    const val PHYS = 1000
+
+    /** Bytes per contact: tip and id share one byte, then 16-bit X and Y. */
+    const val CONTACT_BYTES = 5
+}
+
 object ReportSize {
     const val KEYBOARD = 8
     const val MOUSE = 5
     const val GAMEPAD = 9
-    const val TOUCHPAD = 27
-    const val KEYBOARD_LEDS = 1
-}
-
-object Touchpad {
-    const val MAX_CONTACTS = 5
-    const val X_MAX = 4095
-    const val Y_MAX = 2559
-
-    // Physical size in 0.1 mm steps (unit exponent -2 on cm): a 100 x 62.5 mm pad.
-    // libinput uses this to scale motion, so it must roughly match the logical ratio.
-    const val X_PHYS = 1000
-    const val Y_PHYS = 625
+    const val TOUCHPAD = Touchpad.MAX_CONTACTS * Touchpad.CONTACT_BYTES + 2
 }
 
 /**
@@ -35,6 +38,9 @@ object Touchpad {
  * One descriptor, four devices: keyboard, relative mouse, gamepad, multitouch touchpad.
  */
 object HidDescriptor {
+
+    /** Experiment: leave the touchpad out to find the descriptor size the phone's stack accepts. */
+    private const val TOUCHPAD = true
 
     val bytes: ByteArray by lazy { build() }
 
@@ -104,7 +110,7 @@ object HidDescriptor {
             keyboard()
             mouse()
             gamepad()
-            touchpad()
+            if (TOUCHPAD) touchpad()
         }
         return b.out.toByteArray()
     }
@@ -117,10 +123,6 @@ object HidDescriptor {
         logicalMin(0); logicalMax(1); reportSize(1); reportCount(8); input(DATA_VAR_ABS)
         // Reserved byte.
         reportCount(1); reportSize(8); input(CONSTANT)
-        // Lock LEDs from the host (Num, Caps, Scroll, Compose, Kana) plus padding.
-        usagePage(0x08); usageMin(1); usageMax(5)
-        reportCount(5); reportSize(1); output(DATA_VAR_ABS)
-        reportCount(1); reportSize(3); output(CONSTANT)
         // Six simultaneous keys.
         usagePage(0x07); usageMin(0); usageMax(0xFF)
         logicalMin(0); logicalMax(255); reportSize(8); reportCount(6); input(DATA_ARRAY)
@@ -152,38 +154,36 @@ object HidDescriptor {
         // Hat: 1 = up, clockwise to 8 = up-left, 0 = released.
         usagePage(0x01); usage(0x39)
         logicalMin(1); logicalMax(8); reportSize(4); reportCount(1); input(DATA_VAR_ABS_NULL)
-        reportSize(4); reportCount(1); input(CONSTANT)
-        // Left stick X/Y, right stick Z/Rz.
-        usage(0x30); usage(0x31); usage(0x32); usage(0x35)
-        logicalMin(-127); logicalMax(127); reportSize(8); reportCount(4); input(DATA_VAR_ABS)
-        // Analog triggers on Rx/Ry.
-        usage(0x33); usage(0x34)
-        logicalMin(0); logicalMax(255); reportSize(8); reportCount(2); input(DATA_VAR_ABS)
+        reportSize(4); input(CONSTANT)
+        // Six 8-bit axes, centre 128, in the order Linux gives Xbox pads:
+        // X, Y left stick; Z left trigger; Rx, Ry right stick; Rz right trigger.
+        usageMin(0x30); usageMax(0x35)
+        logicalMin(0); logicalMax(255); reportSize(8); reportCount(6); input(DATA_VAR_ABS)
         endCollection()
     }
 
     private fun Builder.touchpad() {
         usagePage(0x0D); usage(0x05); collection(APPLICATION)
         reportId(ReportId.TOUCHPAD)
-        repeat(Touchpad.MAX_CONTACTS) {
+        // Globals set once stay in force, which keeps each finger to a few bytes.
+        logicalMin(0); reportCount(1)
+        repeat(Touchpad.MAX_CONTACTS) { i ->
             usagePage(0x0D); usage(0x22); collection(LOGICAL)
             usage(0x42) // tip switch
-            logicalMin(0); logicalMax(1); reportSize(1); reportCount(1); input(DATA_VAR_ABS)
+            logicalMax(1); reportSize(1); input(DATA_VAR_ABS)
             usage(0x51) // contact id, 7 bits
-            logicalMax(127); reportSize(7); reportCount(1); input(DATA_VAR_ABS)
+            logicalMax(127); reportSize(7); input(DATA_VAR_ABS)
             usagePage(0x01)
-            logicalMin(0); physicalMin(0); unitExponent(-2); unit(0x11)
-            reportSize(16); reportCount(1)
-            usage(0x30); logicalMax(Touchpad.X_MAX); physicalMax(Touchpad.X_PHYS); input(DATA_VAR_ABS)
-            usage(0x31); logicalMax(Touchpad.Y_MAX); physicalMax(Touchpad.Y_PHYS); input(DATA_VAR_ABS)
+            if (i == 0) { physicalMin(0); physicalMax(Touchpad.PHYS); unitExponent(-2); unit(0x11) }
+            usage(0x30); logicalMax(Touchpad.X_MAX); reportSize(16); input(DATA_VAR_ABS)
+            usage(0x31); input(DATA_VAR_ABS)
             endCollection()
         }
-        unit(0); unitExponent(0)
         usagePage(0x0D); usage(0x54) // contact count
-        logicalMin(0); logicalMax(Touchpad.MAX_CONTACTS); reportSize(8); reportCount(1); input(DATA_VAR_ABS)
+        logicalMax(Touchpad.MAX_CONTACTS); reportSize(8); input(DATA_VAR_ABS)
         usagePage(0x09); usageMin(1); usageMax(1) // pad click
-        logicalMax(1); reportSize(1); reportCount(1); input(DATA_VAR_ABS)
-        reportSize(7); reportCount(1); input(CONSTANT)
+        logicalMax(1); reportSize(1); input(DATA_VAR_ABS)
+        reportSize(7); input(CONSTANT)
         endCollection()
     }
 }

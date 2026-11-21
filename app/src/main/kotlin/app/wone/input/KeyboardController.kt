@@ -84,27 +84,13 @@ class KeyboardController(private val sink: KeyboardSink, private val onTyped: (S
         sink.keyboard(mods, keys)
     }
 
+    /** The preview shows text only: letters, symbols, space and backspace. No chords, arrows or Enter. */
     private fun typedFor(key: KeyDef) {
         val mods = activeMods
-        val chord = mods and (Keys.CTRL or Keys.ALT or Keys.SUPER)
-        if (chord != 0) {
-            val parts = buildList {
-                if (mods and Keys.CTRL != 0) add("Ctrl")
-                if (mods and Keys.ALT != 0) add("Alt")
-                if (mods and Keys.SUPER != 0) add("Super")
-                if (mods and Keys.SHIFT != 0) add("Shift")
-                add(Keys.usageName[key.usage] ?: key.label)
-            }
-            onTyped("[" + parts.joinToString("+") + "]")
-            return
-        }
+        if (mods and (Keys.CTRL or Keys.ALT or Keys.SUPER) != 0) return
+        val text = key.typed ?: return
+        if (text == "\n" || text == "\t") return
         val shifted = (mods and Keys.SHIFT) != 0
-        val text = when {
-            key.typed == "\b" -> "\b"
-            key.typed != null && key.kind == KeyKind.Char -> if (shifted && key.shiftChar != null) key.shiftChar else key.typed
-            key.typed != null -> key.typed
-            else -> "[${key.label}]"
-        }
-        onTyped(text)
+        onTyped(if (key.kind == KeyKind.Char && shifted && key.shiftChar != null) key.shiftChar else text)
     }
 }

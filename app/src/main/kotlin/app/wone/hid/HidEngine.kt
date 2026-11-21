@@ -236,8 +236,9 @@ class HidEngine(private val context: Context) {
             val h = proxy as BluetoothHidDevice
             hid = h
             val sdp = BluetoothHidDeviceAppSdpSettings(
+                // Kept short: the whole SDP record has a small fixed size on Android.
                 "w-one",
-                "Phone keyboard, touchpad, mouse and gamepad",
+                "w-one",
                 "w-one",
                 BluetoothHidDevice.SUBCLASS1_COMBO,
                 HidDescriptor.bytes,
@@ -269,7 +270,11 @@ class HidEngine(private val context: Context) {
             val h = Host(device.address, device.name ?: device.address)
             when (state) {
                 BluetoothProfile.STATE_CONNECTING -> _state.value = HidState.Connecting(h)
-                BluetoothProfile.STATE_CONNECTED -> { host = device; _state.value = HidState.Connected(h) }
+                BluetoothProfile.STATE_CONNECTED -> {
+                    host = device; _state.value = HidState.Connected(h)
+                    // Hosts start every axis at zero until a report arrives, so send the neutral one.
+                    releaseAll()
+                }
                 BluetoothProfile.STATE_DISCONNECTED, BluetoothProfile.STATE_DISCONNECTING -> {
                     if (state == BluetoothProfile.STATE_DISCONNECTED) {
                         if (host?.address == device.address) host = null
@@ -282,7 +287,7 @@ class HidEngine(private val context: Context) {
 
         override fun onGetReport(device: BluetoothDevice, type: Byte, id: Byte, bufferSize: Int) {
             val size = when (id.toInt()) {
-                ReportId.KEYBOARD -> if (type == BluetoothHidDevice.REPORT_TYPE_OUTPUT) ReportSize.KEYBOARD_LEDS else ReportSize.KEYBOARD
+                ReportId.KEYBOARD -> ReportSize.KEYBOARD
                 ReportId.MOUSE -> ReportSize.MOUSE
                 ReportId.GAMEPAD -> ReportSize.GAMEPAD
                 ReportId.TOUCHPAD -> ReportSize.TOUCHPAD
