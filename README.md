@@ -2,11 +2,11 @@
 
 Use your Android phone as a Bluetooth keyboard, trackpad, air mouse and gamepad. Nothing to install on the computer: it sees an ordinary Bluetooth keyboard, mouse, touchpad and controller, so it works on any Linux distro.
 
-Status: first release, 0.1.0. Tested on a Pixel 10a (Android 17) with Fedora KDE Plasma over Bluetooth Classic. Other phones and distros are untested.
+Status: release 0.1.1. Tested on a Pixel 10a (Android 17) with Fedora KDE Plasma over Bluetooth Classic. Other phones and distros are untested.
 
 ## Install
 
-Download `w-one-0.1.0.apk` from the latest release, check it against the `.sha256` file, and install it (your phone will ask to allow installs from your browser or file manager). Pair the phone with your computer from the app's Computers tab.
+Download `w-one-0.1.1.apk` from the latest release, check it against the `.sha256` file, and install it (your phone will ask to allow installs from your browser or file manager). Pair the phone with your computer from the app's Computers tab.
 
 ## Modes
 

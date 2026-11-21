@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1
 
 - Gamepad: built-in layouts for browser games ("Browser: WASD and mouse" with a look area and mouse buttons, "Browser: arrows"), sticks and D-pads that press keys instead of gamepad axes, and a layout picker in the gamepad bar.
 
