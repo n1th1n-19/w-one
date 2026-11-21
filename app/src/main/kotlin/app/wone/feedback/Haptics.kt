@@ -36,7 +36,11 @@ class Haptics(context: Context) {
     }
 
     private fun primitive(id: Int, scale: Float): VibrationEffect? =
-        if (primitives) VibrationEffect.startComposition().addPrimitive(id, scale).compose() else null
+        if (primitives && Build.VERSION.SDK_INT >= 31) compose(id, scale) else null
+
+    @androidx.annotation.RequiresApi(30)
+    private fun compose(id: Int, scale: Float): VibrationEffect =
+        VibrationEffect.startComposition().addPrimitive(id, scale).compose()
 
     private fun predefined(id: Int): VibrationEffect? =
         if (Build.VERSION.SDK_INT >= 29) VibrationEffect.createPredefined(id) else VibrationEffect.createOneShot(8, 120)
@@ -67,11 +71,13 @@ class Haptics(context: Context) {
 
     /** Analog trigger: a rise that grows with how far it is pulled, 0..1. */
     fun trigger(pull: Float) {
-        if (level != HapticLevel.Rich || !primitives) { if (pull > 0.95f) click(); return }
-        play(VibrationEffect.startComposition()
-            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, (0.3f + 0.6f * pull).coerceIn(0f, 1f))
-            .compose())
+        if (level != HapticLevel.Rich || !primitives || Build.VERSION.SDK_INT < 31) { if (pull > 0.95f) click(); return }
+        play(rise((0.3f + 0.6f * pull).coerceIn(0f, 1f)))
     }
+
+    @androidx.annotation.RequiresApi(30)
+    private fun rise(scale: Float): VibrationEffect =
+        VibrationEffect.startComposition().addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, scale).compose()
 
     /** Stick pushed to its edge. */
     fun edge() = play(

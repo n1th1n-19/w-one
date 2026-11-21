@@ -34,6 +34,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     // F-Droid reproducibility: no dependency metadata blobs in the APK.
