@@ -7,6 +7,8 @@ interface PadOut {
     fun gamepad(report: ByteArray)
     fun keyboard(mods: Int, keys: IntArray)
     fun mouse(buttons: Int)
+    /** Relative pointer movement from a look area. */
+    fun look(buttons: Int, dx: Int, dy: Int) {}
 }
 
 /**
@@ -20,6 +22,7 @@ class PadController(private val out: PadOut) {
     private val trig = FloatArray(2)    // 0..1
     private val keys = LinkedHashMap<String, Bind.Key>()
     private var mouse = 0
+    private val dirKeys = LinkedHashMap<String, List<Int>>()   // keys held by a stick or D-pad in key mode
 
     /** Digital press for a Pad, Key or Mouse binding. */
     fun setButton(c: PadControl, down: Boolean) {
@@ -30,7 +33,7 @@ class PadController(private val out: PadOut) {
             }
             is Bind.Key -> {
                 if (down) keys[c.id] = b else keys.remove(c.id)
-                out.keyboard(keys.values.fold(0) { m, k -> m or k.mods }, keys.values.map { it.usage }.take(6).toIntArray())
+                sendKeys()
             }
             is Bind.Mouse -> {
                 mouse = if (down) mouse or (1 shl b.bit) else mouse and (1 shl b.bit).inv()
@@ -39,6 +42,41 @@ class PadController(private val out: PadOut) {
             else -> Unit
         }
     }
+
+    private fun sendKeys() {
+        val usages = (keys.values.map { it.usage } + dirKeys.values.flatten()).filter { it != 0 }.distinct().take(6)
+        out.keyboard(keys.values.fold(0) { m, k -> m or k.mods }, usages.toIntArray())
+    }
+
+    /** A stick in key mode: pressing past [threshold] in a direction holds that direction's key. */
+    fun setStickKeys(c: PadControl, x: Float, y: Float, threshold: Float = 0.35f) {
+        val b = c.bind as? Bind.Keys4 ?: return
+        val held = buildList {
+            if (y < -threshold) add(b.up); if (y > threshold) add(b.down)
+            if (x < -threshold) add(b.left); if (x > threshold) add(b.right)
+        }
+        setDirKeys(c.id, held)
+    }
+
+    /** A D-pad in key mode, from its hat value (0 released, 1 up, clockwise to 8). */
+    fun setHatKeys(c: PadControl, hat: Int) {
+        val b = c.bind as? Bind.Keys4 ?: return
+        val held = buildList {
+            if (hat == 1 || hat == 2 || hat == 8) add(b.up)
+            if (hat in 2..4) add(b.right)
+            if (hat in 4..6) add(b.down)
+            if (hat in 6..8) add(b.left)
+        }
+        setDirKeys(c.id, held)
+    }
+
+    private fun setDirKeys(id: String, held: List<Int>) {
+        if (held.isEmpty()) dirKeys.remove(id) else dirKeys[id] = held
+        sendKeys()
+    }
+
+    /** Pointer movement from a look area. */
+    fun look(dx: Int, dy: Int) = out.look(mouse, dx, dy)
 
     /** Stick position in -1..1 on each axis, screen down is positive. */
     fun setStick(side: Int, x: Float, y: Float) {
@@ -59,7 +97,7 @@ class PadController(private val out: PadOut) {
 
     fun releaseAll() {
         buttons = 0; hat = 0; stick.fill(0f); trig.fill(0f)
-        keys.clear(); mouse = 0
+        keys.clear(); dirKeys.clear(); mouse = 0
         sendPad(); out.keyboard(0, IntArray(0)); out.mouse(0)
     }
 

@@ -1,9 +1,10 @@
 package app.wone.input
 
+import app.wone.hid.HidReports
 import org.json.JSONArray
 import org.json.JSONObject
 
-enum class CtlType { Button, Trigger, Bumper, Stick, DPad }
+enum class CtlType { Button, Trigger, Bumper, Stick, DPad, Look }
 
 /** What a control sends. Gamepad buttons use the bit positions of the report's 16 buttons. */
 sealed interface Bind {
@@ -13,6 +14,10 @@ sealed interface Bind {
     /** Analog: 0 = left, 1 = right. Used by sticks and triggers. */
     data class Axis(val side: Int) : Bind
     data object Hat : Bind
+    /** A stick or D-pad that presses four keys (up, left, down, right) instead of gamepad axes. */
+    data class Keys4(val up: Int, val left: Int, val down: Int, val right: Int) : Bind
+    /** A drag area that moves the mouse pointer, [gain] times the finger movement. */
+    data class Look(val gain: Float) : Bind
 }
 
 /** Report button bits, chosen so Linux maps them to the usual evdev gamepad codes. */
@@ -90,6 +95,48 @@ data class PadLayout(val name: String, val controls: List<PadControl>) {
             ),
         )
 
+        private const val W = 0x1A; private const val A = 0x04; private const val S = 0x16; private const val D = 0x07
+        private const val SPACE = 0x2C; private const val ESC = 0x29; private const val ENTER = 0x28; private const val TAB = 0x2B
+        private const val E = 0x08; private const val Q = 0x14; private const val R = 0x15; private const val F = 0x09
+        private const val Z = 0x1D; private const val X = 0x1B; private const val P = 0x13
+
+        private fun key(id: String, label: String, x: Float, y: Float, size: Float, usage: Int, mods: Int = 0) =
+            PadControl(id, CtlType.Button, label, x, y, size, bind = Bind.Key(usage, mods))
+
+        /** Layouts for games that run in a browser: they use the keyboard and mouse, not a gamepad. */
+        fun presets(): List<PadLayout> = listOf(
+            PadLayout(
+                "Browser: WASD and mouse",
+                listOf(
+                    PadControl("move", CtlType.Stick, "WASD", 0.16f, 0.62f, 0.40f, bind = Bind.Keys4(W, A, S, D)),
+                    PadControl("look", CtlType.Look, "look", 0.68f, 0.50f, 0.55f, bind = Bind.Look(2.2f)),
+                    key("jump", "Space", 0.36f, 0.82f, 0.16f, SPACE),
+                    key("shift", "Shift", 0.07f, 0.12f, 0.15f, 0, HidReports.MOD_LSHIFT),
+                    key("ctrl", "Ctrl", 0.07f, 0.30f, 0.15f, 0, HidReports.MOD_LCTRL),
+                    key("e", "E", 0.30f, 0.14f, 0.14f, E),
+                    key("q", "Q", 0.30f, 0.32f, 0.14f, Q),
+                    key("r", "R", 0.42f, 0.14f, 0.14f, R),
+                    key("f", "F", 0.42f, 0.32f, 0.14f, F),
+                    key("esc", "Esc", 0.94f, 0.10f, 0.13f, ESC),
+                    key("tab", "Tab", 0.82f, 0.10f, 0.13f, TAB),
+                    PadControl("rmb", CtlType.Button, "RMB", 0.78f, 0.88f, 0.15f, bind = Bind.Mouse(1)),
+                    PadControl("lmb", CtlType.Button, "LMB", 0.92f, 0.82f, 0.19f, bind = Bind.Mouse(0)),
+                ),
+            ),
+            PadLayout(
+                "Browser: arrows",
+                listOf(
+                    PadControl("dir", CtlType.DPad, "", 0.22f, 0.60f, 0.46f, bind = Bind.Keys4(0x52, 0x50, 0x51, 0x4F)),
+                    key("z", "Z", 0.74f, 0.66f, 0.19f, Z),
+                    key("x", "X", 0.90f, 0.48f, 0.19f, X),
+                    key("space", "Space", 0.60f, 0.86f, 0.17f, SPACE),
+                    key("enter", "Enter", 0.88f, 0.84f, 0.17f, ENTER),
+                    key("p", "P", 0.72f, 0.12f, 0.13f, P),
+                    key("esc", "Esc", 0.92f, 0.12f, 0.13f, ESC),
+                ),
+            ),
+        )
+
         private fun controlFromJson(o: JSONObject): PadControl {
             val b = o.getJSONObject("bind")
             val bind = when (b.getString("k")) {
@@ -98,6 +145,11 @@ data class PadLayout(val name: String, val controls: List<PadControl>) {
                 "mouse" -> Bind.Mouse(b.getInt("v").coerceIn(0, 4))
                 "axis" -> Bind.Axis(b.getInt("v").coerceIn(0, 1))
                 "hat" -> Bind.Hat
+                "keys4" -> {
+                    val a = b.getJSONArray("v")
+                    Bind.Keys4(a.getInt(0).coerceIn(0, 255), a.getInt(1).coerceIn(0, 255), a.getInt(2).coerceIn(0, 255), a.getInt(3).coerceIn(0, 255))
+                }
+                "look" -> Bind.Look(b.getDouble("v").toFloat().coerceIn(0.2f, 6f))
                 else -> error("unknown binding")
             }
             return PadControl(
@@ -123,6 +175,8 @@ private fun PadControl.toJson(): JSONObject {
         is Bind.Mouse -> b.put("k", "mouse").put("v", k.bit)
         is Bind.Axis -> b.put("k", "axis").put("v", k.side)
         Bind.Hat -> b.put("k", "hat")
+        is Bind.Keys4 -> b.put("k", "keys4").put("v", JSONArray(listOf(k.up, k.left, k.down, k.right)))
+        is Bind.Look -> b.put("k", "look").put("v", k.gain.toDouble())
     }
     return JSONObject().put("id", id).put("type", type.name).put("label", label)
         .put("x", x.toDouble()).put("y", y.toDouble()).put("size", size.toDouble())

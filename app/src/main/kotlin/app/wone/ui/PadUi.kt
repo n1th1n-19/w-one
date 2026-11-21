@@ -29,6 +29,7 @@ fun PadControl.geom(areaW: Float, areaH: Float): PadGeom {
     val d = size * areaH
     return when (type) {
         CtlType.Trigger, CtlType.Bumper -> PadGeom(x * areaW, y * areaH, d * 1.9f, d * 0.75f)
+        CtlType.Look -> PadGeom(x * areaW, y * areaH, size * areaW, size * areaH)
         else -> PadGeom(x * areaW, y * areaH, d, d)
     }
 }
@@ -81,6 +82,13 @@ fun DrawScope.drawControl(
             drawRoundRect(ring.copy(alpha = ring.alpha * a), tl, Size(w, h), rad, style = Stroke(ringW))
             label(tm, c.label, g.cx, g.cy + dy, Pal.text.copy(alpha = a), 14)
         }
+        CtlType.Look -> {
+            val tl = Offset(g.cx - g.w / 2, g.cy - g.h / 2)
+            val rad = CornerRadius(16f * dpx)
+            drawRoundRect(Pal.surface.copy(alpha = a * 0.7f), tl, Size(g.w, g.h), rad)
+            drawRoundRect(Pal.line.copy(alpha = a), tl, Size(g.w, g.h), rad, style = Stroke(1.5f * dpx))
+            label(tm, c.label, g.cx, g.cy, Pal.faint.copy(alpha = a), 14)
+        }
         CtlType.Stick -> {
             val r = g.w / 2
             drawCircle(Pal.surface.copy(alpha = a), r, Offset(g.cx, g.cy))
@@ -126,8 +134,12 @@ private fun DrawScope.label(tm: TextMeasurer, text: String, cx: Float, cy: Float
     drawText(r, topLeft = Offset(cx - r.size.width / 2f, cy - r.size.height / 2f))
 }
 
-fun layoutsFrom(s: Settings): List<PadLayout> =
-    PadLayout.listFromJson(s.gamepadLayouts).ifEmpty { listOf(PadLayout.default()) }
+/** Saved layouts, with the built-in browser layouts added when the user has not saved their own copy. */
+fun layoutsFrom(s: Settings): List<PadLayout> {
+    val saved = PadLayout.listFromJson(s.gamepadLayouts).ifEmpty { listOf(PadLayout.default()) }
+    val names = saved.map { it.name }.toSet()
+    return saved + PadLayout.presets().filter { it.name !in names }
+}
 
 fun activeLayout(s: Settings): PadLayout {
     val all = layoutsFrom(s)

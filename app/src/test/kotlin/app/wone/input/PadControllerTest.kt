@@ -61,4 +61,48 @@ class PadControllerTest {
         pad.releaseAll()
         assertEquals(0, last[0].toInt()); assertEquals(128, last[3].toInt() and 0xFF)
     }
+
+    private fun keysStick() = PadControl("move", CtlType.Stick, "WASD", 0.2f, 0.6f, 0.4f, bind = Bind.Keys4(0x1A, 0x04, 0x16, 0x07))
+
+    @Test fun stickInKeyModePressesDirectionKeys() {
+        val c = keysStick()
+        pad.setStickKeys(c, 0f, -1f)
+        assertEquals(0 to listOf(0x1A), kb)
+        pad.setStickKeys(c, 1f, -1f)
+        assertEquals(0 to listOf(0x1A, 0x07), kb)
+        pad.setStickKeys(c, 0.1f, 0.1f)
+        assertEquals(0 to emptyList<Int>(), kb)
+    }
+
+    @Test fun dpadInKeyModeFollowsTheHat() {
+        val c = PadControl("dir", CtlType.DPad, "", 0.2f, 0.6f, 0.4f, bind = Bind.Keys4(0x52, 0x50, 0x51, 0x4F))
+        pad.setHatKeys(c, 2) // up-right
+        assertEquals(0 to listOf(0x52, 0x4F), kb)
+        pad.setHatKeys(c, 0)
+        assertEquals(0 to emptyList<Int>(), kb)
+    }
+
+    @Test fun directionKeysAndButtonKeysShareOneReport() {
+        pad.setStickKeys(keysStick(), 0f, -1f)
+        pad.setButton(btn(Bind.Key(0x2C, 0), "jump"), true)
+        assertEquals(0 to listOf(0x2C, 0x1A), kb)
+    }
+
+    @Test fun shiftOnlyKeyIsAModifier() {
+        pad.setButton(btn(Bind.Key(0, 0x02), "shift"), true)
+        assertEquals(0x02 to emptyList<Int>(), kb)
+    }
+
+    @Test fun lookSendsPointerMovementWithHeldButtons() {
+        var seen: Triple<Int, Int, Int>? = null
+        val p = PadController(object : PadOut {
+            override fun gamepad(report: ByteArray) {}
+            override fun keyboard(mods: Int, keys: IntArray) {}
+            override fun mouse(buttons: Int) {}
+            override fun look(buttons: Int, dx: Int, dy: Int) { seen = Triple(buttons, dx, dy) }
+        })
+        p.setButton(btn(Bind.Mouse(0)), true)
+        p.look(5, -3)
+        assertEquals(Triple(1, 5, -3), seen)
+    }
 }

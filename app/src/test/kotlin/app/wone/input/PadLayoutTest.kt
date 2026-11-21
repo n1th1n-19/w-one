@@ -34,4 +34,12 @@ class PadLayoutTest {
         val json = "[{\"name\":\"big\",\"controls\":[" + List(100) { ctl }.joinToString(",") + "]}]"
         assertEquals(PadLayout.MAX_CONTROLS, PadLayout.listFromJson(json).single().controls.size)
     }
+
+    @Test fun browserPresetsRoundTripAndAreNamed() {
+        val presets = PadLayout.presets()
+        assertTrue(presets.size >= 2 && presets.all { it.name.startsWith("Browser") })
+        assertEquals(presets, PadLayout.listFromJson(PadLayout.listToJson(presets)))
+        assertTrue(presets.first().controls.any { it.type == CtlType.Look })
+        assertTrue(presets.first().controls.any { it.bind is Bind.Keys4 })
+    }
 }
