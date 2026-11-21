@@ -25,14 +25,12 @@ import androidx.core.view.WindowInsetsControllerCompat
 import app.wone.ui.AirMouseScreen
 import app.wone.ui.GamepadEditScreen
 import app.wone.ui.GamepadScreen
-import app.wone.ui.HomeScreen
+import app.wone.ui.HomeShell
 import app.wone.ui.IntroScreen
 import app.wone.ui.KeyboardScreen
 import app.wone.ui.PairingScreen
 import app.wone.ui.Pal
 import app.wone.ui.Screen
-import app.wone.ui.SettingsScreen
-import app.wone.ui.SplashScreen
 import app.wone.ui.TrackpadScreen
 import app.wone.ui.WTheme
 import kotlinx.coroutines.delay
@@ -52,7 +50,7 @@ class MainActivity : ComponentActivity() {
         val s = loaded
         if (s == null) { Box(Modifier.fillMaxSize().background(Pal.bg)); return }
 
-        var screen by rememberSaveable { mutableStateOf(Screen.Splash) }
+        var screen by rememberSaveable { mutableStateOf(if (s.onboardingDone) Screen.Home else Screen.Intro) }
         val scope = androidx.compose.runtime.rememberCoroutineScope()
         val view = LocalView.current
 
@@ -67,14 +65,7 @@ class MainActivity : ComponentActivity() {
             if (screen.landscape && s.keepScreenOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
-        LaunchedEffect(screen) {
-            if (screen == Screen.Splash) {
-                delay(900)
-                screen = if (s.onboardingDone) Screen.Home else Screen.Intro
-            }
-        }
-
-        BackHandler(enabled = screen != Screen.Home && screen != Screen.Splash && screen != Screen.Intro) {
+        BackHandler(enabled = screen != Screen.Home && screen != Screen.Intro) {
             screen = when (screen) {
                 Screen.GamepadEdit -> Screen.Gamepad
                 else -> Screen.Home
@@ -84,10 +75,8 @@ class MainActivity : ComponentActivity() {
         WTheme(s) {
             val nav: (Screen) -> Unit = { screen = it }
             when (screen) {
-                Screen.Splash -> SplashScreen()
                 Screen.Intro -> IntroScreen { scope.launch { app.settings.update { it.copy(onboardingDone = true) } }; screen = Screen.Home }
-                Screen.Home -> HomeScreen(nav)
-                Screen.Settings -> SettingsScreen(nav)
+                Screen.Home, Screen.Settings -> HomeShell(screen, nav)
                 Screen.Pairing -> PairingScreen(nav)
                 Screen.Keyboard -> KeyboardScreen(nav)
                 Screen.Trackpad -> TrackpadScreen(nav)

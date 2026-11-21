@@ -9,7 +9,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -66,8 +72,8 @@ fun HostChip(modifier: Modifier = Modifier) {
 }
 
 /**
- * Frame shared by every landscape mode: edge light, a mode switcher at top left that is always
- * there, an optional bar content, then the mode itself.
+ * Frame shared by every landscape mode: a Material 3 navigation rail on the left (every mode and
+ * Home, one tap), a slim bar for the mode's own controls, then the mode itself.
  */
 @Composable
 fun ModeScaffold(
@@ -76,68 +82,39 @@ fun ModeScaffold(
     bar: @Composable RowScope.() -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val settings = LocalSettings.current
-    val accent = LocalAccent.current
-    val clock = rememberClock(settings.ringFx == app.wone.data.RingFx.Wave || settings.ringFx == app.wone.data.RingFx.Breathe)
-    var menu by remember { mutableStateOf(false) }
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Pal.bg)
-            .safeDrawingPadding()
-            .padding(6.dp)
-            .ringLight(settings.ringFx, settings.speed, settings.brightness, accent, clock),
-    ) {
-        Column(Modifier.fillMaxSize().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.fillMaxSize().background(Pal.bg).safeDrawingPadding()) {
+        NavigationRail(
+            containerColor = Pal.surface,
+            modifier = Modifier.fillMaxHeight(),
+            header = null,
+        ) {
+            Spacer(Modifier.weight(1f))
+            for (m in Mode.entries) {
+                NavigationRailItem(
+                    selected = m == mode,
+                    onClick = { nav(m.screen) },
+                    icon = { Icon(m.icon, contentDescription = m.title) },
+                    alwaysShowLabel = false,
+                    label = { Text(m.title, maxLines = 1) },
+                )
+            }
+            NavigationRailItem(
+                selected = false,
+                onClick = { nav(Screen.Home) },
+                icon = { Icon(Icons.home, contentDescription = "Home") },
+                alwaysShowLabel = false,
+                label = { Text("Home") },
+            )
+            Spacer(Modifier.weight(1f))
+        }
+        Column(Modifier.weight(1f).fillMaxHeight().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 Modifier.fillMaxWidth().height(44.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                WButton(
-                    label = mode?.title ?: "Menu",
-                    icon = mode?.icon ?: Icons.home,
-                    onClick = { menu = !menu },
-                    modifier = Modifier.height(44.dp),
-                )
-                bar()
-            }
+            ) { bar() }
             Box(Modifier.weight(1f).fillMaxWidth()) { content() }
         }
-        if (menu) ModeMenu(current = mode, nav = { menu = false; nav(it) }, dismiss = { menu = false })
-    }
-}
-
-@Composable
-private fun ModeMenu(current: Mode?, nav: (Screen) -> Unit, dismiss: () -> Unit) {
-    Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { dismiss() } }) {
-        Column(
-            Modifier
-                .padding(start = 16.dp, top = 62.dp)
-                .width(220.dp)
-                .panel(Pal.raised, 14.dp)
-                .pointerInput(Unit) { detectTapGestures { } }
-                .padding(6.dp),
-        ) {
-            for (m in Mode.entries) MenuRow(m.title, m.icon, m == current) { nav(m.screen) }
-            Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).height(1.dp).background(Pal.line))
-            MenuRow("Home", Icons.home, false) { nav(Screen.Home) }
-        }
-    }
-}
-
-@Composable
-private fun MenuRow(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, on: Boolean, onClick: () -> Unit) {
-    val accent = LocalAccent.current
-    Row(
-        Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(10.dp))
-            .background(if (on) Pal.keyHi else Color.Transparent)
-            .pointerInput(Unit) { detectTapGestures { onClick() } }
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Ico(icon, if (on) accent else Pal.text, 20.dp)
-        Tx(text, Type.heading.copy(color = if (on) accent else Pal.text))
     }
 }
 

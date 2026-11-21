@@ -2,35 +2,59 @@ package app.wone.ui
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,347 +62,388 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.wone.BuildConfig
 import app.wone.HidService
-import app.wone.data.AccentChoices
 import app.wone.data.HapticLevel
-import app.wone.data.RingFx
 import app.wone.data.Settings
 import app.wone.data.SwitchType
+import app.wone.data.ThemeMode
 import app.wone.data.TrackpadMode
 import app.wone.hid.HidState
 import app.wone.wone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** The keycap mark, drawn flat. */
-@Composable
-fun Mark(size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
-    val accent = LocalAccent.current
-    Canvas(modifier.size(size)) {
-        val u = this.size.width / 54f
-        drawRoundRect(Color(0xFF2B3240), Offset(0f, 0f), Size(54f * u, 54f * u), CornerRadius(9f * u))
-        drawRoundRect(Color(0xFF394255), Offset(4f * u, 4f * u), Size(46f * u, 40f * u), CornerRadius(6f * u))
-        val p = Path().apply {
-            moveTo(11f * u, 16f * u); lineTo(17f * u, 35f * u); lineTo(27f * u, 21f * u); lineTo(37f * u, 35f * u); lineTo(43f * u, 16f * u)
-        }
-        drawPath(p, accent, style = Stroke(5f * u, cap = StrokeCap.Round, join = StrokeJoin.Round))
-    }
-}
+private enum class Tab(val label: String) { Home("Home"), Computers("Computers"), Settings("Settings") }
 
+/** Portrait shell: large title, three bottom destinations. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SplashScreen() {
-    Box(Modifier.fillMaxSize().background(Pal.bg), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            Mark(88.dp)
-            Tx("w-one", Type.title.copy(fontSize = androidx.compose.ui.unit.TextUnit(30f, androidx.compose.ui.unit.TextUnitType.Sp)))
-            Tx("phone as keyboard, trackpad, mouse and gamepad", Type.label)
-        }
-    }
-}
-
-@Composable
-fun IntroScreen(onDone: () -> Unit) {
-    var step by remember { mutableIntStateOf(0) }
-    val pages = listOf(
-        Triple("Four inputs in one phone", "Switch between a programmer's keyboard, a real trackpad, an air mouse and a custom gamepad at any time.", true),
-        Triple("Pair once, then just open", "Open Bluetooth settings on your computer and pick this phone. After that w-one reconnects on its own.", false),
-        Triple("Nothing to install", "Your computer sees an ordinary Bluetooth keyboard, mouse, touchpad and controller, so it works on any Linux distro. w-one never uses the internet.", false),
-    )
-    val (title, body, showModes) = pages[step]
-    Column(Modifier.fillMaxSize().background(Pal.bg).safeDrawingPadding().padding(24.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Tx("${step + 1} / ${pages.size}", Type.label)
-            if (step < pages.lastIndex) Tx("Skip", Type.heading.copy(color = Pal.muted), modifier = Modifier.clickable { onDone() }.padding(12.dp))
-        }
-        Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Center) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (m in Mode.entries) {
-                    Column(
-                        Modifier.weight(1f).height(84.dp).panel(Pal.surface, 14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
-                    ) {
-                        Ico(m.icon, if (showModes) LocalAccent.current else Pal.muted, 26.dp)
-                        Gap(6.dp)
-                        Tx(m.title.split(' ').first().lowercase(), Type.label)
-                    }
+fun HomeShell(start: Screen, nav: (Screen) -> Unit) {
+    var tab by remember(start) { mutableStateOf(if (start == Screen.Settings) Tab.Settings else Tab.Home) }
+    val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    Scaffold(
+        modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(if (tab == Tab.Home) "w-one" else tab.label) },
+                scrollBehavior = scroll,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            )
+        },
+        bottomBar = {
+            NavigationBar {
+                for (t in Tab.entries) {
+                    NavigationBarItem(
+                        selected = t == tab,
+                        onClick = { tab = t },
+                        icon = { Icon(when (t) { Tab.Home -> Icons.home; Tab.Computers -> Icons.devices; Tab.Settings -> Icons.sliders }, contentDescription = t.label) },
+                        label = { Text(t.label) },
+                    )
                 }
             }
-            Gap(32.dp)
-            Tx(title, Type.title)
-            Gap(12.dp)
-            Tx(body, Type.muted.copy(fontSize = androidx.compose.ui.unit.TextUnit(16f, androidx.compose.ui.unit.TextUnitType.Sp), lineHeight = androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp)))
-            if (step == 2) {
-                Gap(16.dp)
-                Tx("Fedora, Ubuntu, Debian, Arch, Mint, openSUSE and more", Type.label)
+        },
+    ) { pad ->
+        Box(Modifier.padding(pad).fillMaxSize()) {
+            when (tab) {
+                Tab.Home -> HomeTab(nav) { tab = Tab.Computers }
+                Tab.Computers -> ComputersTab(nav)
+                Tab.Settings -> SettingsTab(nav)
             }
         }
-        WButton(if (step == pages.lastIndex) "Get started" else "Next", { if (step == pages.lastIndex) onDone() else step++ }, Modifier.fillMaxWidth(), primary = true)
     }
 }
 
 @Composable
-fun HomeScreen(nav: (Screen) -> Unit) {
+private fun permissionsToAsk(): Array<String> = remember {
+    buildList {
+        if (Build.VERSION.SDK_INT >= 31) add(Manifest.permission.BLUETOOTH_CONNECT)
+        if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
+    }.toTypedArray()
+}
+
+@Composable
+private fun HomeTab(nav: (Screen) -> Unit, openComputers: () -> Unit) {
     val ctx = LocalContext.current
     val app = ctx.wone
-    val settings = LocalSettings.current
     val state by app.engine.state.collectAsState()
-    val scope = rememberCoroutineScope()
-    val perms = remember {
-        buildList {
-            if (Build.VERSION.SDK_INT >= 31) add(Manifest.permission.BLUETOOTH_CONNECT)
-            if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
-        }.toTypedArray()
-    }
+    val perms = permissionsToAsk()
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         if (app.engine.hasPermission()) HidService.start(ctx) else app.engine.start()
     }
-    LaunchedEffect(Unit) {
-        if (app.engine.hasPermission()) HidService.start(ctx) else app.engine.start()
+    LaunchedEffect(Unit) { if (app.engine.hasPermission()) HidService.start(ctx) else app.engine.start() }
+    val cs = MaterialTheme.colorScheme
+    val connected = state is HidState.Connected
+    val (title, body) = when (val s = state) {
+        is HidState.Connected -> s.host.name to "Connected over Bluetooth. Pick a mode."
+        is HidState.Connecting -> s.host.name to "Connecting. Waiting for the computer to accept."
+        HidState.Ready -> "Not connected" to "Pick a computer, or pair a new one."
+        HidState.NeedsPermission -> "Bluetooth permission needed" to "w-one needs it to act as a keyboard and mouse."
+        HidState.BluetoothOff -> "Bluetooth is off" to "Turn Bluetooth on to connect."
+        HidState.Unsupported -> "Not supported" to "This phone's Bluetooth has no HID Device profile. Some makers turn it off; Pixel phones support it."
+        HidState.Registering -> "Starting" to "Registering with the Bluetooth stack."
+        HidState.Idle -> "Stopped" to "Start w-one to connect."
     }
-    val (dot, status) = hostStatus()
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = if (connected) cs.primaryContainer else cs.surfaceContainerHigh),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(if (connected) "Connected" else "Status", style = MaterialTheme.typography.labelLarge, color = if (connected) cs.onPrimaryContainer else cs.onSurfaceVariant)
+                Text(title, style = MaterialTheme.typography.headlineSmall, color = if (connected) cs.onPrimaryContainer else cs.onSurface)
+                Text(body, style = MaterialTheme.typography.bodyMedium, color = if (connected) cs.onPrimaryContainer else cs.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                when (state) {
+                    HidState.NeedsPermission -> Button({ launcher.launch(perms) }) { Text("Allow Bluetooth") }
+                    HidState.BluetoothOff -> Button({ runCatching { ctx.startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }) { Text("Turn on Bluetooth") }
+                    is HidState.Connected -> FilledTonalButton({ app.engine.disconnect() }) { Text("Disconnect") }
+                    HidState.Ready -> FilledTonalButton(openComputers) { Text("Choose a computer") }
+                    HidState.Idle -> Button({ HidService.start(ctx) }) { Text("Start") }
+                    HidState.Unsupported -> FilledTonalButton({ app.engine.stop(); HidService.start(ctx) }) { Text("Try again") }
+                    else -> Unit
+                }
+            }
+        }
+
+        Text("Modes", style = MaterialTheme.typography.titleSmall, color = cs.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp))
+        val modes = Mode.entries
+        for (row in modes.chunked(2)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                for (m in row) {
+                    Card(
+                        onClick = { nav(m.screen) },
+                        colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer),
+                        modifier = Modifier.weight(1f).height(120.dp),
+                    ) {
+                        Column(Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                            Icon(m.icon, contentDescription = null, tint = cs.primary, modifier = Modifier.size(28.dp))
+                            Column {
+                                Text(m.title, style = MaterialTheme.typography.titleMedium)
+                                Text(m.hint, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun ComputersTab(nav: (Screen) -> Unit) {
+    val ctx = LocalContext.current
+    val app = ctx.wone
+    val state by app.engine.state.collectAsState()
     var computers by remember { mutableStateOf(app.engine.pairedComputers()) }
     // Bonds change outside the app (the computer pairs with us), so look again every couple of seconds.
     LaunchedEffect(Unit) { while (true) { computers = app.engine.pairedComputers(); delay(2000) } }
-
-    Column(Modifier.fillMaxSize().background(Pal.bg).safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Mark(34.dp)
-            GapW(12.dp)
-            Tx("w-one", Type.title, modifier = Modifier.weight(1f))
-            IconBtn(Icons.sliders, "Settings", { nav(Screen.Settings) })
-        }
-        Gap(20.dp)
-
-        // Connection card
-        val ring = rememberClock(settings.ringFx == RingFx.Wave || settings.ringFx == RingFx.Breathe)
-        Column(
-            Modifier.fillMaxWidth().ringLight(settings.ringFx, settings.speed, settings.brightness, LocalAccent.current, ring, corner = 16.dp, stroke = 2.dp, inset = 1.dp)
-                .panel(Pal.surface, 16.dp, Color.Transparent).padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(Modifier.size(10.dp).clip(CircleShape).background(dot))
-                Tx(if (state is HidState.Connected) "Connected" else "Not connected", Type.label)
-            }
-            Tx(status, Type.title)
-            Tx(
-                when (state) {
-                    is HidState.Connected -> "Bluetooth Classic HID. Pick a mode below."
-                    HidState.Ready -> "Pick a computer below, or pair a new one."
-                    HidState.NeedsPermission -> "w-one needs the Bluetooth permission to act as a keyboard and mouse."
-                    HidState.BluetoothOff -> "Turn Bluetooth on to connect."
-                    HidState.Unsupported -> "This phone's Bluetooth does not offer the HID Device profile. Some makers turn it off. Pixel and most Samsung phones support it."
-                    HidState.Registering -> "Registering with the Bluetooth stack."
-                    is HidState.Connecting -> "Waiting for the computer to accept."
-                    HidState.Idle -> "Stopped."
-                },
-                Type.muted,
-            )
-            when (state) {
-                HidState.NeedsPermission -> WButton("Allow Bluetooth", { launcher.launch(perms) }, Modifier.fillMaxWidth(), primary = true, icon = Icons.bluetooth)
-                HidState.BluetoothOff -> WButton("Turn on Bluetooth", {
-                    runCatching { ctx.startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                }, Modifier.fillMaxWidth(), primary = true, icon = Icons.bluetooth)
-                is HidState.Connected -> WButton("Disconnect", { app.engine.disconnect() }, Modifier.fillMaxWidth())
-                HidState.Ready -> WButton("Pair a new computer", { nav(Screen.Pairing) }, Modifier.fillMaxWidth(), icon = Icons.plus)
-                HidState.Idle -> WButton("Start", { HidService.start(ctx) }, Modifier.fillMaxWidth(), primary = true)
-                HidState.Unsupported -> WButton("Try again", { app.engine.stop(); HidService.start(ctx) }, Modifier.fillMaxWidth())
-                else -> Unit
-            }
-        }
-
-        SectionLabel("Modes")
-        Column(Modifier.fillMaxWidth().panel(Pal.surface, 16.dp)) {
-            Mode.entries.forEachIndexed { i, m ->
-                Row(
-                    Modifier.fillMaxWidth().height(64.dp).clickable { nav(m.screen) }.padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Ico(m.icon, LocalAccent.current, 24.dp)
-                    Column(Modifier.weight(1f)) {
-                        Tx(m.title, Type.heading)
-                        Tx(m.hint, Type.label)
-                    }
-                    Ico(Icons.chevron, Pal.faint, 18.dp, Modifier.graphicsLayer { rotationZ = -90f })
-                }
-                if (i < Mode.entries.lastIndex) Box(Modifier.fillMaxWidth().padding(start = 54.dp).height(1.dp).background(Pal.line))
-            }
-        }
-
-        SectionLabel("Paired computers")
-        Column(Modifier.fillMaxWidth().panel(Pal.surface, 16.dp)) {
+    val cs = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
             if (computers.isEmpty()) {
-                Tx("None yet. Use \"Pair a new computer\" above.", Type.muted, modifier = Modifier.padding(16.dp))
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("No computers yet", style = MaterialTheme.typography.titleMedium)
+                    Text("Pair one below. After that it appears here and reconnects on its own.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+                }
             }
             computers.forEachIndexed { i, h ->
                 val on = (state as? HidState.Connected)?.host?.address == h.address
-                Row(
-                    Modifier.fillMaxWidth().height(60.dp).clickable(enabled = !on) { app.engine.connect(h.address) }.padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(if (on) Pal.ok else Pal.faint))
-                    Column(Modifier.weight(1f)) {
-                        Tx(h.name, Type.heading)
-                        Tx(if (on) "connected" else "tap to connect", Type.label)
-                    }
-                }
-                if (i < computers.lastIndex) Box(Modifier.fillMaxWidth().padding(start = 36.dp).height(1.dp).background(Pal.line))
+                val connecting = (state as? HidState.Connecting)?.host?.address == h.address
+                ListItem(
+                    headlineContent = { Text(h.name) },
+                    supportingContent = { Text(if (on) "Connected" else if (connecting) "Connecting" else "Tap to connect") },
+                    leadingContent = { Icon(Icons.computer, contentDescription = null) },
+                    colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+                    modifier = Modifier.clickable(enabled = !on && !connecting) { app.engine.connect(h.address) },
+                )
+                if (i < computers.lastIndex) HorizontalDivider(Modifier.padding(start = 72.dp), color = cs.outlineVariant)
             }
         }
-        Gap(24.dp)
+        Button({ nav(Screen.Pairing) }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.plus, contentDescription = null, modifier = Modifier.size(18.dp)); Spacer(Modifier.size(8.dp)); Text("Pair a new computer")
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PairingScreen(nav: (Screen) -> Unit) {
     val ctx = LocalContext.current
-    Column(Modifier.fillMaxSize().background(Pal.bg).safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconBtn(Icons.back, "Back", { nav(Screen.Home) })
-            GapW(12.dp)
-            Tx("Pair a computer", Type.title)
-        }
-        Gap(20.dp)
-        val steps = listOf(
-            "Make this phone visible" to "Tap the button below. The phone stays discoverable for two minutes.",
-            "Open Bluetooth on the computer" to "Choose \"w-one\" or this phone's name in the device list and confirm the code on both screens.",
-            "Let it connect" to "After pairing the computer connects by itself. If it only pairs, pick the phone again and choose Connect.",
-        )
-        steps.forEachIndexed { i, (t, b) ->
-            Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.size(30.dp).clip(CircleShape).background(Pal.raised), contentAlignment = Alignment.Center) { Tx("${i + 1}", Type.code) }
-                Column { Tx(t, Type.heading); Tx(b, Type.muted) }
+    val cs = MaterialTheme.colorScheme
+    Scaffold(
+        containerColor = cs.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("Pair a computer") },
+                navigationIcon = { IconButton({ nav(Screen.Home) }) { Icon(Icons.back, contentDescription = "Back") } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = cs.background),
+            )
+        },
+    ) { pad ->
+        Column(Modifier.padding(pad).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            val steps = listOf(
+                "Make this phone visible" to "Tap the button below. The phone stays discoverable for two minutes.",
+                "Open Bluetooth on the computer" to "Choose this phone in the list and confirm the code on both screens.",
+                "Let it connect" to "After pairing the computer connects by itself. If it only pairs, pick the phone again and choose Connect.",
+            )
+            Card(colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
+                steps.forEachIndexed { i, (t, b) ->
+                    ListItem(
+                        headlineContent = { Text(t) },
+                        supportingContent = { Text(b) },
+                        leadingContent = {
+                            Box(Modifier.size(32.dp).clip(CircleShape).background(cs.secondaryContainer), contentAlignment = Alignment.Center) {
+                                Text("${i + 1}", color = cs.onSecondaryContainer, style = MaterialTheme.typography.labelLarge)
+                            }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+                    )
+                }
             }
-        }
-        WButton("Make phone visible", {
-            runCatching {
-                ctx.startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 120).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            Button({
+                runCatching { ctx.startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 120).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }, modifier = Modifier.fillMaxWidth()) { Text("Make phone visible") }
+            OutlinedButton({
+                runCatching { ctx.startActivity(Intent(AndroidSettings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }, modifier = Modifier.fillMaxWidth()) { Text("Open Bluetooth settings") }
+
+            Text("Linux tips", style = MaterialTheme.typography.titleSmall, color = cs.onSurfaceVariant)
+            Text("Newer BlueZ versions refuse input devices that are not bonded. Pair first, trust it, then connect:", style = MaterialTheme.typography.bodyMedium)
+            Card(colors = CardDefaults.cardColors(containerColor = cs.surfaceContainerHigh), modifier = Modifier.fillMaxWidth()) {
+                Tx("bluetoothctl\npair <phone address>\ntrust <phone address>\nconnect <phone address>", Type.code, modifier = Modifier.padding(16.dp))
             }
-        }, Modifier.fillMaxWidth(), primary = true, icon = Icons.bluetooth)
-        Gap(10.dp)
-        WButton("Open Bluetooth settings", {
-            runCatching { ctx.startActivity(Intent(AndroidSettings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-        }, Modifier.fillMaxWidth())
-        SectionLabel("Linux tips")
-        Tx(
-            "Newer BlueZ versions refuse input devices that are not bonded. Pair first, trust it, then connect:",
-            Type.muted,
-        )
-        Gap(8.dp)
-        Tx("bluetoothctl\npair <phone address>\ntrust <phone address>\nconnect <phone address>", Type.code, modifier = Modifier.fillMaxWidth().panel(Pal.surface, 12.dp).padding(14.dp))
-        Gap(10.dp)
-        Tx("If a computer paired before an update of w-one, remove the phone there and pair again: computers cache what a device can do.", Type.muted)
-        Gap(10.dp)
-        Tx("Typing assumes a US keyboard layout on the computer.", Type.muted)
+            Text("A computer remembers what a device can do when it pairs. After updating w-one, remove the phone on the computer and pair again. Typing assumes a US keyboard layout on the computer.", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
+            Spacer(Modifier.height(16.dp))
+        }
     }
 }
 
 @Composable
-fun SettingsScreen(nav: (Screen) -> Unit) {
+private fun Group(title: String, content: @Composable () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall, color = cs.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp))
+        Card(colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer), modifier = Modifier.fillMaxWidth()) { content() }
+    }
+}
+
+@Composable
+private fun SwitchRow(label: String, on: Boolean, hint: String? = null, onChange: (Boolean) -> Unit) {
+    ListItem(
+        headlineContent = { Text(label) },
+        supportingContent = hint?.let { { Text(it) } },
+        trailingContent = { Switch(on, onChange) },
+        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+        modifier = Modifier.clickable { onChange(!on) },
+    )
+}
+
+@Composable
+private fun SliderRow(label: String, value: Float, range: ClosedFloatingPointRange<Float>, shown: String, onChange: (Float) -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(shown, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Slider(value, onChange, valueRange = range)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> ChoiceRow(label: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            options.forEachIndexed { i, (v, text) ->
+                SegmentedButton(
+                    selected = v == selected, onClick = { onSelect(v) },
+                    shape = SegmentedButtonDefaults.itemShape(i, options.size),
+                ) { Text(text, maxLines = 1) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsTab(nav: (Screen) -> Unit) {
     val ctx = LocalContext.current
     val app = ctx.wone
     val s = LocalSettings.current
     val scope = rememberCoroutineScope()
     fun upd(f: (Settings) -> Settings) { scope.launch { app.settings.update(f) } }
+    val cs = MaterialTheme.colorScheme
 
-    Column(Modifier.fillMaxSize().background(Pal.bg).safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconBtn(Icons.back, "Back", { nav(Screen.Home) })
-            GapW(12.dp)
-            Tx("Settings", Type.title)
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Group("Appearance") {
+            ChoiceRow("Theme", ThemeMode.entries.map { it to it.label }, s.theme) { v -> upd { it.copy(theme = v) } }
+            if (Build.VERSION.SDK_INT >= 31) SwitchRow("Use wallpaper colours", s.dynamicColor, "Match the colours of your phone's theme") { v -> upd { it.copy(dynamicColor = v) } }
         }
-
-        SectionLabel("Lighting")
-        Segmented(RingFx.entries.map { it to it.label }, s.ringFx, { v -> upd { it.copy(ringFx = v) } }, Modifier.fillMaxWidth())
-        Gap(10.dp)
-        Row { Tx("Speed", Type.body, modifier = Modifier.weight(1f)); Tx("${"%.1f".format(s.speed)} s", Type.label) }
-        WSlider(11f - s.speed, { v -> upd { it.copy(speed = 11f - v) } }, 1f..10f, Modifier.fillMaxWidth(), "Lighting speed")
-        Row { Tx("Brightness", Type.body, modifier = Modifier.weight(1f)); Tx("${(s.brightness * 100).toInt()} %", Type.label) }
-        WSlider(s.brightness, { v -> upd { it.copy(brightness = v) } }, 0.1f..1f, Modifier.fillMaxWidth(), "Lighting brightness")
-        Tx("Accent colour", Type.body)
-        Gap(8.dp)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            AccentChoices.forEachIndexed { i, c ->
-                Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(Color(c))
-                        .let { if (i == s.accentIndex) it.then(Modifier.padding(0.dp)) else it }
-                        .pointerInput(i) { detectTapGestures { upd { it.copy(accentIndex = i) } } },
-                    contentAlignment = Alignment.Center,
-                ) { if (i == s.accentIndex) Ico(Icons.check, Pal.onAccent, 22.dp) }
-            }
+        Group("Sound and touch") {
+            SwitchRow("Click sounds", s.sounds) { v -> upd { it.copy(sounds = v) } }
+            SliderRow("Volume", s.volume, 0f..1f, "${(s.volume * 100).toInt()} %") { v -> upd { it.copy(volume = v) } }
+            ChoiceRow("Keyboard switch sound", SwitchType.entries.map { it to it.label }, s.switchType) { v -> upd { it.copy(switchType = v) }; app.sounds.switchType = v; app.sounds.keyDown(0x04, false) }
+            ChoiceRow("Haptic feedback", HapticLevel.entries.map { it to it.label }, s.haptics) { v -> upd { it.copy(haptics = v) }; app.haptics.level = v; app.haptics.click() }
         }
-        Gap(4.dp)
-        Tx("Keyboard lighting effects are picked on the keyboard screen.", Type.muted)
-
-        SectionLabel("Sound and touch")
-        SwitchRow("Click sounds", s.sounds) { v -> upd { it.copy(sounds = v) } }
-        Row { Tx("Volume", Type.body, modifier = Modifier.weight(1f)); Tx("${(s.volume * 100).toInt()} %", Type.label) }
-        WSlider(s.volume, { v -> upd { it.copy(volume = v) } }, 0f..1f, Modifier.fillMaxWidth(), "Volume")
-        Tx("Keyboard switch sound", Type.body)
-        Gap(8.dp)
-        Segmented(SwitchType.entries.map { it to it.label }, s.switchType, { v -> upd { it.copy(switchType = v) }; app.sounds.switchType = v; app.sounds.keyDown(0x04, false) }, Modifier.fillMaxWidth())
-        Tx(s.switchType.feel, Type.label, modifier = Modifier.padding(top = 6.dp))
-        Gap(12.dp)
-        Tx("Haptic feedback", Type.body)
-        Gap(8.dp)
-        Segmented(HapticLevel.entries.map { it to it.label }, s.haptics, { v -> upd { it.copy(haptics = v) }; app.haptics.level = v; app.haptics.click() }, Modifier.fillMaxWidth())
-
-        SectionLabel("Keyboard")
-        SwitchRow("Secure typing (hide preview text)", s.secureTyping) { v -> upd { it.copy(secureTyping = v) } }
-
-        SectionLabel("Trackpad")
-        Tx("Default mode", Type.body)
-        Gap(8.dp)
-        Segmented(TrackpadMode.entries.map { it to it.label }, s.trackpadMode, { v -> upd { it.copy(trackpadMode = v) } }, Modifier.fillMaxWidth())
-        Gap(8.dp)
-        Row { Tx("Pointer speed (simple mode)", Type.body, modifier = Modifier.weight(1f)); Tx("%.1f".format(s.trackpadSpeed), Type.label) }
-        WSlider(s.trackpadSpeed, { v -> upd { it.copy(trackpadSpeed = v) } }, 0.5f..3f, Modifier.fillMaxWidth(), "Pointer speed")
-        SwitchRow("Natural scrolling (simple mode)", s.naturalScroll) { v -> upd { it.copy(naturalScroll = v) } }
-
-        SectionLabel("Air mouse")
-        Row { Tx("Sensitivity", Type.body, modifier = Modifier.weight(1f)); Tx("%.1f".format(s.airSensitivity), Type.label) }
-        WSlider(s.airSensitivity, { v -> upd { it.copy(airSensitivity = v) } }, 0.3f..3f, Modifier.fillMaxWidth(), "Air mouse sensitivity")
-        SwitchRow("Invert left / right", s.airInvertX) { v -> upd { it.copy(airInvertX = v) } }
-        SwitchRow("Invert up / down", s.airInvertY) { v -> upd { it.copy(airInvertY = v) } }
-
-        SectionLabel("Connection")
-        SwitchRow("Reconnect to last computer", s.reconnectLast) { v -> upd { it.copy(reconnectLast = v) } }
-        SwitchRow("Keep screen on in modes", s.keepScreenOn) { v -> upd { it.copy(keepScreenOn = v) } }
-        Gap(10.dp)
-        WButton("Stop w-one", {
-            ctx.startService(Intent(ctx, HidService::class.java).setAction(HidService.ACTION_STOP))
-        }, Modifier.fillMaxWidth())
-
-        SectionLabel("About")
-        Tx("w-one ${BuildConfig.VERSION_NAME}", Type.code)
-        Gap(4.dp)
-        Tx("Free software under the GPL-3.0-or-later. No network access, no tracking.", Type.muted)
-        Gap(8.dp)
-        Tx(
-            "Keyboard sounds: CC0 recordings by handygaber, humi74 and UberBosser from Freesound, cut by the Mechanify project. Other sounds are synthesised for w-one. Font: JetBrains Mono, SIL OFL 1.1.",
-            Type.muted,
-        )
-        Gap(24.dp)
+        Group("Keyboard") {
+            SwitchRow("Secure typing", s.secureTyping, "Hide the typed text preview") { v -> upd { it.copy(secureTyping = v) } }
+        }
+        Group("Trackpad") {
+            ChoiceRow("Default mode", TrackpadMode.entries.map { it to it.label }, s.trackpadMode) { v -> upd { it.copy(trackpadMode = v) } }
+            SliderRow("Pointer speed (simple mode)", s.trackpadSpeed, 0.5f..3f, "%.1f".format(s.trackpadSpeed)) { v -> upd { it.copy(trackpadSpeed = v) } }
+            SwitchRow("Natural scrolling (simple mode)", s.naturalScroll) { v -> upd { it.copy(naturalScroll = v) } }
+        }
+        Group("Air mouse") {
+            SliderRow("Sensitivity", s.airSensitivity, 0.3f..3f, "%.1f".format(s.airSensitivity)) { v -> upd { it.copy(airSensitivity = v) } }
+            SwitchRow("Invert left and right", s.airInvertX) { v -> upd { it.copy(airInvertX = v) } }
+            SwitchRow("Invert up and down", s.airInvertY) { v -> upd { it.copy(airInvertY = v) } }
+        }
+        Group("Connection") {
+            SwitchRow("Reconnect to last computer", s.reconnectLast) { v -> upd { it.copy(reconnectLast = v) } }
+            SwitchRow("Keep screen on in modes", s.keepScreenOn) { v -> upd { it.copy(keepScreenOn = v) } }
+            TextButton({ ctx.startService(Intent(ctx, HidService::class.java).setAction(HidService.ACTION_STOP)) }, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Stop w-one") }
+        }
+        Group("About") {
+            ListItem(
+                headlineContent = { Text("w-one ${BuildConfig.VERSION_NAME}") },
+                supportingContent = { Text("Free software, GPL-3.0-or-later. No network access, no tracking.") },
+                colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+            )
+            ListItem(
+                headlineContent = { Text("Credits") },
+                supportingContent = { Text("Key sounds: CC0 recordings by handygaber, humi74 and UberBosser from Freesound, cut by the Mechanify project. Other sounds are synthesised for w-one. Icons: Material Symbols (Apache-2.0). Font: JetBrains Mono (SIL OFL 1.1).") },
+                colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }
 
+/** Three swipe steps, each showing a real piece of the app rather than a decorative picture. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SwitchRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
-        Tx(label, Type.body, modifier = Modifier.weight(1f))
-        WSwitch(on, onChange, label)
+fun IntroScreen(onDone: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val pager = rememberPagerState { 3 }
+    val scope = rememberCoroutineScope()
+    Column(Modifier.fillMaxSize().background(cs.background).padding(24.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            if (pager.currentPage < 2) TextButton(onDone) { Text("Skip") }
+        }
+        HorizontalPager(pager, modifier = Modifier.weight(1f)) { page ->
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
+                when (page) {
+                    0 -> Card(colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer)) {
+                        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            for (m in Mode.entries) Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(m.icon, contentDescription = null, tint = cs.primary, modifier = Modifier.size(28.dp))
+                                Text(m.title.substringBefore(' '), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                            }
+                        }
+                    }
+                    1 -> Card(colors = CardDefaults.cardColors(containerColor = cs.surfaceContainer)) {
+                        ListItem(
+                            headlineContent = { Text("fedora-desktop") },
+                            supportingContent = { Text("Tap to connect") },
+                            leadingContent = { Icon(Icons.computer, contentDescription = null) },
+                            colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+                        )
+                    }
+                    else -> Card(colors = CardDefaults.cardColors(containerColor = cs.primaryContainer)) {
+                        Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                            Text("Connected", style = MaterialTheme.typography.labelLarge, color = cs.onPrimaryContainer)
+                            Text("fedora-desktop", style = MaterialTheme.typography.headlineSmall, color = cs.onPrimaryContainer)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(32.dp))
+                val (t, b) = when (page) {
+                    0 -> "Four inputs in one phone" to "A programmer's keyboard, a real trackpad, an air mouse and a custom gamepad. Switch with one tap."
+                    1 -> "Pair once, then just open" to "Pick this phone in your computer's Bluetooth settings. After that w-one reconnects on its own."
+                    else -> "Nothing to install" to "The computer sees an ordinary Bluetooth keyboard, mouse, touchpad and controller, so it works on any Linux distro. w-one never uses the internet."
+                }
+                Text(t, style = MaterialTheme.typography.headlineMedium)
+                Spacer(Modifier.height(12.dp))
+                Text(b, style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant)
+            }
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                repeat(3) { i -> Box(Modifier.size(width = if (i == pager.currentPage) 20.dp else 8.dp, height = 8.dp).clip(CircleShape).background(if (i == pager.currentPage) cs.primary else cs.outlineVariant)) }
+            }
+            Button({ if (pager.currentPage == 2) onDone() else scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } }) {
+                Text(if (pager.currentPage == 2) "Get started" else "Next")
+            }
+        }
     }
 }
