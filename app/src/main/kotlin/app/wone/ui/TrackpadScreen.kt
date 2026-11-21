@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +53,12 @@ fun TrackpadScreen(nav: (Screen) -> Unit) {
     simple.natural = settings.naturalScroll
     var leftDown by remember { mutableStateOf(false) }
     var padW by remember { mutableFloatStateOf(1f) }
+    var padH by remember { mutableFloatStateOf(1f) }
     val fingers = remember { mutableStateMapOf<Long, Offset>() }
+    // Native mode sends where each finger is, so sensitivity scales how far a finger's movement counts.
+    val virt = remember { HashMap<Long, Offset>() }
+    val lastPos = remember { HashMap<Long, Offset>() }
+    val gain = rememberUpdatedState(settings.trackpadGain)
 
     fun sendNative(newDown: Boolean) {
         val frame = tracker.frame()
@@ -76,9 +82,11 @@ fun TrackpadScreen(nav: (Screen) -> Unit) {
                 { m -> scope.launch { app.settings.update { it.copy(trackpadMode = m) } } },
                 Modifier.width(200.dp),
             )
-            Tx(
-                if (native) "Two fingers scroll. Gestures use your desktop settings." else "Tap clicks. Two-finger tap right-clicks. Tap, then hold to drag.",
-                Type.label, Pal.faint, Modifier.weight(1f).padding(start = 4.dp),
+            Tx("Speed", Type.label)
+            WSlider(
+                if (native) settings.trackpadGain else settings.trackpadSpeed,
+                { v -> scope.launch { app.settings.update { if (native) it.copy(trackpadGain = v) else it.copy(trackpadSpeed = v) } } },
+                if (native) 0.4f..3f else 0.5f..3f, Modifier.weight(1f).padding(horizontal = 4.dp), "Trackpad sensitivity",
             )
             HostChip()
         },
@@ -86,7 +94,7 @@ fun TrackpadScreen(nav: (Screen) -> Unit) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 Modifier.weight(1f).fillMaxWidth().panel(Pal.surface, 16.dp)
-                    .onSizeChanged { padW = it.width.toFloat() }
+                    .onSizeChanged { padW = it.width.toFloat(); padH = it.height.toFloat() }
                     .pointerInput(native) {
                         val map = { PadMapper(padW) }
                         awaitPointerEventScope {
@@ -99,6 +107,7 @@ fun TrackpadScreen(nav: (Screen) -> Unit) {
                                     val m = map()
                                     if (c.changedToDown()) {
                                         any = true
+                                        virt[id] = c.position; lastPos[id] = c.position
                                         if (native) { if (tracker.down(id, m.x(c.position.x), m.y(c.position.y))) newDown = true }
                                         else simple.down(id, c.position.x, c.position.y, c.uptimeMillis)
                                         fingers[id] = c.position
@@ -106,11 +115,21 @@ fun TrackpadScreen(nav: (Screen) -> Unit) {
                                     } else if (c.changedToUp()) {
                                         any = true
                                         if (native) tracker.up(id) else simple.up(id, c.uptimeMillis)
+                                        virt.remove(id); lastPos.remove(id)
                                         fingers.remove(id)
                                     } else if (c.positionChanged()) {
                                         any = true
-                                        if (native) tracker.move(id, m.x(c.position.x), m.y(c.position.y))
-                                        else simple.move(id, c.position.x, c.position.y, c.uptimeMillis)
+                                        if (native) {
+                                            val v0 = virt[id] ?: c.position
+                                            val d = c.position - (lastPos[id] ?: c.position)
+                                            val v1 = Offset(
+                                                (v0.x + d.x * gain.value).coerceIn(0f, padW),
+                                                (v0.y + d.y * gain.value).coerceIn(0f, padH),
+                                            )
+                                            virt[id] = v1
+                                            tracker.move(id, m.x(v1.x), m.y(v1.y))
+                                        } else simple.move(id, c.position.x, c.position.y, c.uptimeMillis)
+                                        lastPos[id] = c.position
                                         fingers[id] = c.position
                                     }
                                     c.consume()

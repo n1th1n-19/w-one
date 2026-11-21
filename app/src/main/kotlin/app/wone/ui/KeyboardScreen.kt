@@ -1,5 +1,10 @@
 package app.wone.ui
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -267,20 +272,49 @@ fun KeyboardScreen(nav: (Screen) -> Unit) {
 
 private fun mask(text: String, secure: Boolean) = if (secure) text.replace(Regex("[^\\n]"), "•") else text
 
+/** 1 for half a second, then 0 for half a second: a hard blink like a terminal cursor. */
+@Composable
+private fun blinkAlpha(): Float {
+    val t = rememberInfiniteTransition(label = "cursor")
+    val a by t.animateFloat(
+        initialValue = 1f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            keyframes { durationMillis = 1060; 1f at 0; 1f at 529; 0f at 530; 0f at 1059 },
+            RepeatMode.Restart,
+        ),
+        label = "cursor-alpha",
+    )
+    return a
+}
+
+/** The text with a blinking cursor after it. */
+@Composable
+private fun TypedText(shown: String, style: androidx.compose.ui.text.TextStyle) {
+    val a = blinkAlpha()
+    val text = androidx.compose.ui.text.buildAnnotatedString {
+        append(shown)
+        androidx.compose.ui.text.withStyle(androidx.compose.ui.text.SpanStyle(color = style.color.copy(alpha = a))) { append("\u258E") }
+    }
+    androidx.compose.foundation.text.BasicText(text, style = style)
+}
+
 /** One line that always ends at the latest character, using all the width there is. */
 @Composable
 private fun PreviewBar(text: String, secure: Boolean, modifier: Modifier) {
     val tm = rememberTextMeasurer()
     val charPx = remember { tm.measure("M", Type.code).size.width.coerceAtLeast(1) }
     var widthPx by remember { mutableStateOf(0) }
-    val fit = ((widthPx - 28 * LocalContext.current.resources.displayMetrics.density) / charPx).toInt().coerceAtLeast(4)
+    val fit = ((widthPx - 28 * LocalContext.current.resources.displayMetrics.density) / charPx).toInt().coerceAtLeast(4) - 1
     val shown = mask(text, secure).takeLast(fit)
     Row(
         modifier.height(44.dp).onSizeChanged { widthPx = it.width }.panel(Pal.surface, 12.dp).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start,
     ) {
-        if (shown.isEmpty()) Tx("typed text shows here", Type.code, Pal.faint)
-        else Tx(shown, Type.code)
+        if (shown.isEmpty()) {
+            val a = blinkAlpha()
+            Tx("\u258E", Type.code, Pal.text.copy(alpha = a))
+            Tx("typed text shows here", Type.code, Pal.faint)
+        } else TypedText(shown, Type.code)
     }
 }
 
@@ -292,9 +326,5 @@ private fun ExpandedPreview(text: String, secure: Boolean, modifier: Modifier) {
     Box(
         modifier.fillMaxWidth().fillMaxHeight(0.4f).panel(Pal.raised, 14.dp)
             .verticalScroll(scroll).padding(14.dp),
-    ) {
-        val shown = mask(text, secure)
-        if (shown.isEmpty()) Tx("typed text shows here", Type.code, Pal.faint) else Tx(shown, Type.code)
-    }
+    ) { TypedText(mask(text, secure), Type.code) }
 }
-
