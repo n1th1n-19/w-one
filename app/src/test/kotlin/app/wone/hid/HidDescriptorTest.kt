@@ -42,15 +42,17 @@ class HidDescriptorTest {
         return Parsed(input, output, depth == 0)
     }
 
-    private val parsed = parse(HidDescriptor.bytes)
+    private val parsed = parse(HidDescriptor.full)
+    private val parsedPad = parse(HidDescriptor.withTouchpad)
 
-    @Test fun collectionsBalanced() = assertTrue(parsed.balanced)
+    @Test fun collectionsBalanced() { assertTrue(parsed.balanced); assertTrue(parsedPad.balanced) }
 
     @Test fun reportSizesMatchEncoders() {
         assertEquals(ReportSize.KEYBOARD * 8, parsed.inputBits[ReportId.KEYBOARD])
         assertEquals(ReportSize.MOUSE * 8, parsed.inputBits[ReportId.MOUSE])
         assertEquals(ReportSize.GAMEPAD * 8, parsed.inputBits[ReportId.GAMEPAD])
-        assertEquals(ReportSize.TOUCHPAD * 8, parsed.inputBits[ReportId.TOUCHPAD])
+        assertEquals(ReportSize.KEYBOARD * 8, parsedPad.inputBits[ReportId.KEYBOARD])
+        assertEquals(ReportSize.TOUCHPAD * 8, parsedPad.inputBits[ReportId.TOUCHPAD])
     }
 
     @Test fun encodersProduceDeclaredSizes() {
@@ -60,7 +62,7 @@ class HidDescriptorTest {
         assertEquals(ReportSize.TOUCHPAD, HidReports.touchpad(emptyList(), false).size)
     }
 
-    @Test fun descriptorStaysSmall() = assertTrue("size ${HidDescriptor.bytes.size}", HidDescriptor.bytes.size < 340)
+    @Test fun descriptorsStaySmall() { assertTrue("full ${HidDescriptor.full.size}", HidDescriptor.full.size < 340); assertTrue("pad ${HidDescriptor.withTouchpad.size}", HidDescriptor.withTouchpad.size < 340) }
 
     @Test fun mouseClampsDeltas() {
         val r = HidReports.mouse(1, 500, -500)

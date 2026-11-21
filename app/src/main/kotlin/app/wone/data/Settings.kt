@@ -49,6 +49,7 @@ data class Settings(
     val trackpadMode: TrackpadMode = TrackpadMode.Native,
     val trackpadSpeed: Float = 1.4f,
     val trackpadGain: Float = 1f,
+    val nativeTouchpad: Boolean = false,
     val naturalScroll: Boolean = false,
     val reconnectLast: Boolean = true,
     val keepScreenOn: Boolean = true,
@@ -83,6 +84,7 @@ class SettingsStore(private val context: Context) {
         val tpMode = stringPreferencesKey("tpMode")
         val tpSpeed = floatPreferencesKey("tpSpeed")
         val tpGain = floatPreferencesKey("tpGain")
+        val nativePad = booleanPreferencesKey("nativeTouchpad")
         val natural = booleanPreferencesKey("natural")
         val reconnect = booleanPreferencesKey("reconnect")
         val keepOn = booleanPreferencesKey("keepOn")
@@ -120,6 +122,7 @@ class SettingsStore(private val context: Context) {
             p[K.tpMode] = n.trackpadMode.name
             p[K.tpSpeed] = n.trackpadSpeed
             p[K.tpGain] = n.trackpadGain
+            p[K.nativePad] = n.nativeTouchpad
             p[K.natural] = n.naturalScroll
             p[K.reconnect] = n.reconnectLast
             p[K.keepOn] = n.keepScreenOn
@@ -152,6 +155,7 @@ class SettingsStore(private val context: Context) {
             trackpadMode = p.enum(K.tpMode, d.trackpadMode),
             trackpadSpeed = p[K.tpSpeed] ?: d.trackpadSpeed,
             trackpadGain = p[K.tpGain] ?: d.trackpadGain,
+            nativeTouchpad = p[K.nativePad] ?: d.nativeTouchpad,
             naturalScroll = p[K.natural] ?: d.naturalScroll,
             reconnectLast = p[K.reconnect] ?: d.reconnectLast,
             keepScreenOn = p[K.keepOn] ?: d.keepScreenOn,

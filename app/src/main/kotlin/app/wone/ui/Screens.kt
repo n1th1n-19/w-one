@@ -335,7 +335,10 @@ private fun SettingsTab(nav: (Screen) -> Unit) {
             SwitchRow("Secure typing", s.secureTyping, "Hide the typed text preview") { v -> upd { it.copy(secureTyping = v) } }
         }
         Group("Trackpad") {
-            ChoiceRow("Default mode", TrackpadMode.entries.map { it to it.label }, s.trackpadMode) { v -> upd { it.copy(trackpadMode = v) } }
+            SwitchRow(
+                "Native multitouch touchpad", s.nativeTouchpad,
+                "Linux only. In this profile the computer sees only a keyboard and a touchpad: mouse, air mouse and gamepad stop working. Remove the phone on the computer and pair again after changing it.",
+            ) { v -> upd { it.copy(nativeTouchpad = v) }; app.engine.stop(); HidService.start(ctx) }
             SliderRow("Pointer speed (simple mode)", s.trackpadSpeed, 0.5f..3f, "%.1f".format(s.trackpadSpeed)) { v -> upd { it.copy(trackpadSpeed = v) } }
             SwitchRow("Natural scrolling (simple mode)", s.naturalScroll) { v -> upd { it.copy(naturalScroll = v) } }
         }

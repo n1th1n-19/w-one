@@ -40,7 +40,7 @@ data class Host(val address: String, val name: String)
  * Process-wide singleton: the foreground service keeps the process alive, the UI only reads state.
  */
 @SuppressLint("MissingPermission") // every entry point checks [hasPermission] first
-class HidEngine(private val context: Context) {
+class HidEngine(private val context: Context, private val touchpadProfile: () -> Boolean = { false }) {
 
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "wone-hid-send").apply { isDaemon = true } }
@@ -277,7 +277,7 @@ class HidEngine(private val context: Context) {
                 "w-one",
                 "w-one",
                 BluetoothHidDevice.SUBCLASS1_COMBO,
-                HidDescriptor.bytes,
+                HidDescriptor.forProfile(touchpadProfile()),
             )
             val ok = try {
                 h.registerApp(sdp, null, null, { r -> main.post(r) }, callback)

@@ -45,7 +45,7 @@ fun TrackpadScreen(nav: (Screen) -> Unit) {
     val settings = LocalSettings.current
     val accent = LocalAccent.current
     val scope = rememberCoroutineScope()
-    val native = settings.trackpadMode == TrackpadMode.Native
+    val native = settings.nativeTouchpad && settings.trackpadMode == TrackpadMode.Native
 
     val tracker = remember { ContactTracker() }
     val simple = remember { SimpleTrackpad { b, dx, dy, w, p -> app.engine.mouse(b, dx, dy, w, p) } }
@@ -76,12 +76,7 @@ fun TrackpadScreen(nav: (Screen) -> Unit) {
     ModeScaffold(
         mode = Mode.Trackpad, nav = nav,
         bar = {
-            Segmented(
-                listOf(TrackpadMode.Native to "Native", TrackpadMode.Simple to "Simple"),
-                settings.trackpadMode,
-                { m -> scope.launch { app.settings.update { it.copy(trackpadMode = m) } } },
-                Modifier.width(200.dp),
-            )
+            Tx(if (settings.nativeTouchpad) "Native touchpad" else "Simple trackpad", Type.label)
             Tx("Speed", Type.label)
             WSlider(
                 if (native) settings.trackpadGain else settings.trackpadSpeed,

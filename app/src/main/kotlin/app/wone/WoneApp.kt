@@ -8,7 +8,7 @@ import app.wone.hid.HidEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** Process-wide objects. The foreground service keeps this process alive while connected. */
@@ -21,8 +21,8 @@ class WoneApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        engine = HidEngine(this)
         settings = SettingsStore(this)
+        engine = HidEngine(this) { kotlinx.coroutines.runBlocking { settings.flow.first().nativeTouchpad } }
         sounds = Sounds(this)
         haptics = Haptics(this)
         // Keep the feedback helpers in step with the settings.

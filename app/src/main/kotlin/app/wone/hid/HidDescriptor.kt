@@ -39,10 +39,16 @@ object ReportSize {
  */
 object HidDescriptor {
 
-    /** Experiment: leave the touchpad out to find the descriptor size the phone's stack accepts. */
-    private const val TOUCHPAD = true
+    /**
+     * Linux binds its multitouch driver to any device with a touchpad collection, and that driver
+     * ignores the mouse and gamepad collections of the same device. So there are two descriptors:
+     * the full one without the touchpad (keyboard, mouse, gamepad) and a touchpad one that has
+     * only keyboard and touchpad. The app picks one by a setting; changing it needs a re-pair.
+     */
+    val full: ByteArray by lazy { build(touchpad = false) }
+    val withTouchpad: ByteArray by lazy { build(touchpad = true) }
 
-    val bytes: ByteArray by lazy { build() }
+    fun forProfile(touchpad: Boolean): ByteArray = if (touchpad) withTouchpad else full
 
     private class Builder {
         val out = ByteArrayOutputStream()
@@ -104,13 +110,16 @@ object HidDescriptor {
     private const val PHYSICAL = 0x00
     private const val LOGICAL = 0x02
 
-    private fun build(): ByteArray {
+    private fun build(touchpad: Boolean): ByteArray {
         val b = Builder()
         with(b) {
             keyboard()
-            mouse()
-            gamepad()
-            if (TOUCHPAD) touchpad()
+            if (touchpad) {
+                touchpad()
+            } else {
+                mouse()
+                gamepad()
+            }
         }
         return b.out.toByteArray()
     }
