@@ -18,7 +18,12 @@ Status: early development. The app builds and the logic is unit tested, but real
 
 ## How it works
 
-One combined HID report descriptor exposes four devices over a single connection, so switching modes never reconnects: keyboard (report 1), relative mouse with wheel (2), gamepad (3) and a five-finger multitouch touchpad (4). The Linux kernel binds `hid-multitouch` to the touchpad, and libinput handles it like a laptop touchpad. See `app/src/main/kotlin/app/wone/hid/`.
+One HID report descriptor exposes several devices over a single connection, so switching modes never reconnects. There are two profiles, because Linux binds its multitouch driver to any device that has a touchpad collection and that driver ignores the mouse and gamepad collections of the same device (checked on Fedora with the kernel's input list):
+
+- **Full** (default): keyboard (report 1), relative mouse with wheel (2) and gamepad (3). The trackpad mode sends mouse reports with laptop-style gestures.
+- **Touchpad** (Settings > Trackpad > Native multitouch touchpad): keyboard (1) and a three-finger multitouch touchpad (4). libinput treats it like a laptop touchpad; mouse, air mouse and gamepad do not work in this profile.
+
+Changing the profile needs the phone to be removed on the computer and paired again, because the computer caches the descriptor at pairing. Android's Bluetooth stack also limits the size of the stored descriptor (a 573 byte one was rejected by BlueZ, 335 bytes works), so both stay under 340 bytes. See `app/src/main/kotlin/app/wone/hid/`.
 
 ## Build
 
