@@ -22,6 +22,7 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.WOne">
 
+        <!-- The launcher activity must be exported. nosemgrep: java.android.security.exported_activity.exported_activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
