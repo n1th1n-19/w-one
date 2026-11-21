@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
@@ -100,7 +102,7 @@ private fun appendTyped(cur: String, token: String): String {
     val next = if (token == "\b") {
         if (cur.endsWith("]")) cur.substring(0, cur.lastIndexOf('[').coerceAtLeast(0)) else cur.dropLast(1)
     } else cur + token
-    return if (next.length > 240) next.takeLast(240) else next
+    return if (next.length > 2000) next.takeLast(2000) else next
 }
 
 @Composable
@@ -112,6 +114,7 @@ fun KeyboardScreen(nav: (Screen) -> Unit) {
     var layer by remember { mutableStateOf(Layer.Abc) }
     val typed = remember { mutableStateOf("") }
     var panel by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
     val time = remember { mutableFloatStateOf(0f) }
     val heat = remember { HashMap<String, Int>() }
     val hits = remember { ArrayList<Hit>() }
@@ -159,6 +162,7 @@ fun KeyboardScreen(nav: (Screen) -> Unit) {
         mode = Mode.Keyboard, nav = nav,
         bar = {
             PreviewBar(typed.value, settings.secureTyping, Modifier.weight(1f))
+            IconBtn(if (expanded) Icons.up else Icons.down, "Expand typed text", { expanded = !expanded }, active = expanded)
             IconBtn(Icons.close, "Clear typed text", { typed.value = "" })
             IconBtn(Icons.light, "Lighting effects", { panel = !panel }, active = panel)
         },
@@ -255,19 +259,42 @@ fun KeyboardScreen(nav: (Screen) -> Unit) {
                     drawText(layout, topLeft = Offset(cx - layout.size.width / 2f, cy - layout.size.height / 2f - bar / 3f))
                 }
             }
+            if (expanded) ExpandedPreview(typed.value, settings.secureTyping, Modifier.align(Alignment.TopStart))
             if (panel) LightingPanel(onClose = { panel = false })
         }
     }
 }
 
+private fun mask(text: String, secure: Boolean) = if (secure) text.replace(Regex("[^\\n]"), "•") else text
+
+/** One line that always ends at the latest character, using all the width there is. */
 @Composable
 private fun PreviewBar(text: String, secure: Boolean, modifier: Modifier) {
-    val shown = (if (secure) text.replace(Regex("[^\\n]"), "•") else text).replace("\n", "↵").takeLast(40)
+    val tm = rememberTextMeasurer()
+    val charPx = remember { tm.measure("M", Type.code).size.width.coerceAtLeast(1) }
+    var widthPx by remember { mutableStateOf(0) }
+    val fit = ((widthPx - 28 * LocalContext.current.resources.displayMetrics.density) / charPx).toInt().coerceAtLeast(4)
+    val shown = mask(text, secure).takeLast(fit)
     Row(
-        modifier.height(44.dp).panel(Pal.surface, 12.dp).padding(horizontal = 14.dp),
+        modifier.height(44.dp).onSizeChanged { widthPx = it.width }.panel(Pal.surface, 12.dp).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start,
     ) {
         if (shown.isEmpty()) Tx("typed text shows here", Type.code, Pal.faint)
         else Tx(shown, Type.code)
     }
 }
+
+/** Taller panel with the whole text, wrapped, scrolled to the newest line. */
+@Composable
+private fun ExpandedPreview(text: String, secure: Boolean, modifier: Modifier) {
+    val scroll = androidx.compose.foundation.rememberScrollState()
+    LaunchedEffect(text) { scroll.scrollTo(scroll.maxValue) }
+    Box(
+        modifier.fillMaxWidth().fillMaxHeight(0.4f).panel(Pal.raised, 14.dp)
+            .verticalScroll(scroll).padding(14.dp),
+    ) {
+        val shown = mask(text, secure)
+        if (shown.isEmpty()) Tx("typed text shows here", Type.code, Pal.faint) else Tx(shown, Type.code)
+    }
+}
+
